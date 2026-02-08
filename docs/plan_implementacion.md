@@ -133,19 +133,7 @@ Semana 8: Manuales + Publicación Google Play
 - [ ] Configurar pubspec.yaml con todas las dependencias
 - [ ] Configurar análisis estático (analysis_options.yaml)
 
-#### Día 2: Configuración Firebase
-- [ ] Crear proyecto en Firebase Console
-- [ ] Configurar Firebase para Android:
-  - Descargar google-services.json
-  - Configurar build.gradle
-  - Configurar AndroidManifest.xml
-- [ ] Inicializar Firebase en main.dart
-- [ ] Configurar Firebase Auth
-- [ ] Configurar Cloud Firestore
-- [ ] Configurar Firebase Storage
-- [ ] Probar conexión Firebase
-
-#### Día 3-4: Base de Datos SQLite
+#### Día 2-3: Base de Datos SQLite
 - [ ] Crear database_helper.dart
 - [ ] Implementar SQL Schema (12 tablas del modelo)
 - [ ] Crear clase DatabaseService con singleton
@@ -171,7 +159,19 @@ Semana 8: Manuales + Publicación Google Play
   // etc...
   ```
 - [ ] Implementar mappers (toJson, fromJson, toEntity, fromEntity)
-- [ ] Pruebas unitarias de base de datos
+- [ ] Pruebas unitarias y de integración de base de datos (CRUD Tests)
+
+#### Día 4: Configuración Firebase
+- [ ] Crear proyecto en Firebase Console
+- [ ] Configurar Firebase para Android:
+  - Descargar google-services.json
+  - Configurar build.gradle
+  - Configurar AndroidManifest.xml
+- [ ] Inicializar Firebase en main.dart
+- [ ] Configurar Firebase Auth
+- [ ] Configurar Cloud Firestore
+- [ ] Configurar Firebase Storage
+- [ ] Probar conexión Firebase
 
 #### Día 5: Core Utilities
 - [ ] Implementar NetworkInfo (verificar conectividad)
