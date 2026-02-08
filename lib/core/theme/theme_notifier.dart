@@ -21,7 +21,7 @@ class ThemeNotifier extends Notifier<ThemeMode> {
           return ThemeMode.system;
         }
       },
-      error: (_, __) => ThemeMode.system,
+      error: (_, _) => ThemeMode.system,
       loading: () => ThemeMode.system,
     );
   }

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/auth_notifier.dart';
 import '../../widgets/auth/auth_text_field.dart';
-import '../../../domain/repositories/auth_repository.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -33,8 +32,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
     try {
       final repository = ref.read(authRepositoryProvider);
-      final result =
-          await repository.sendPasswordResetEmail(_emailController.text.trim());
+      final result = await repository.sendPasswordResetEmail(
+        _emailController.text.trim(),
+      );
 
       result.fold(
         (failure) {
@@ -124,7 +124,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               if (value == null || value.isEmpty) {
                 return 'Ingresa tu correo';
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+              if (!RegExp(
+                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+              ).hasMatch(value)) {
                 return 'Correo inválido';
               }
               return null;
@@ -165,9 +167,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             onPressed: _isLoading ? null : () => context.pop(),
             child: Text(
               'Volver al inicio de sesión',
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-              ),
+              style: TextStyle(color: theme.colorScheme.primary),
             ),
           ),
         ],
@@ -233,10 +233,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             ),
             child: const Text(
               'Volver al Inicio de Sesión',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -248,9 +245,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           },
           child: Text(
             '¿No recibiste el correo? Intentar de nuevo',
-            style: TextStyle(
-              color: theme.colorScheme.primary,
-            ),
+            style: TextStyle(color: theme.colorScheme.primary),
           ),
         ),
       ],
