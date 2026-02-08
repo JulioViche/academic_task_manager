@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "878034188842",
+    "project_id": "academic-task-manager-a0cfe",
+    "storage_bucket": "academic-task-manager-a0cfe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:878034188842:android:bf019e2b60c9d66da7a153",
+        "android_client_info": {
+          "package_name": "com.twodevlab.academic_task_manager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEAAq0K7D_GXqJzjiYT41wk-RmAR5pBO0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
