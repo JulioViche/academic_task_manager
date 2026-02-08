@@ -1,4 +1,4 @@
-package com.example.academic_task_manager
+package com.twodevlab.academic_task_manager
 
 import io.flutter.embedding.android.FlutterActivity
 
