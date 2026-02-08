@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/network/network_info.dart';
@@ -107,16 +108,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState.loading();
 
     final result = await getCurrentUser();
-    result.fold(
-      (failure) => state = AuthState.unauthenticated(),
-      (user) {
-        if (user != null) {
-          state = AuthState.authenticated(user);
-        } else {
-          state = AuthState.unauthenticated();
-        }
-      },
-    );
+    result.fold((failure) => state = AuthState.unauthenticated(), (user) {
+      if (user != null) {
+        state = AuthState.authenticated(user);
+      } else {
+        state = AuthState.unauthenticated();
+      }
+    });
   }
 
   /// Sign in with Google
@@ -190,8 +188,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 /// Provider for AuthNotifier
-final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
+  ref,
+) {
   return AuthNotifier(
     loginWithGoogle: ref.watch(loginWithGoogleProvider),
     loginWithFacebook: ref.watch(loginWithFacebookProvider),

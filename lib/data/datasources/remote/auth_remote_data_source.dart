@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../models/user_model.dart';
 import '../../../core/error/exceptions.dart';
 
@@ -16,7 +17,10 @@ abstract class AuthRemoteDataSource {
 
   /// Register with email and password
   Future<UserModel> signUpWithEmailPassword(
-      String email, String password, String? displayName);
+    String email,
+    String password,
+    String? displayName,
+  );
 
   /// Sign out
   Future<void> signOut();
@@ -31,6 +35,7 @@ abstract class AuthRemoteDataSource {
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseAuth firebaseAuth;
   final FacebookAuth facebookAuth;
+  final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
 
   AuthRemoteDataSourceImpl({
     required this.firebaseAuth,
@@ -40,14 +45,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> signInWithGoogle() async {
     try {
-      // Use GoogleAuthProvider for Firebase's built-in Google Sign-In popup
-      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
-      googleProvider.addScope('email');
-      googleProvider.addScope('profile');
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
-      // Sign in with popup or redirect based on platform
-      final UserCredential userCredential =
-          await firebaseAuth.signInWithProvider(googleProvider);
+      if (googleUser == null) {
+        throw AuthException('Google sign in was cancelled');
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Create a new credential
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the credential
+      final UserCredential userCredential = await firebaseAuth
+          .signInWithCredential(credential);
 
       if (userCredential.user == null) {
         throw AuthException('Google sign in failed - no user returned');
@@ -77,12 +94,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       // Create a credential from the access token
-      final OAuthCredential credential =
-          FacebookAuthProvider.credential(result.accessToken!.tokenString);
+      final OAuthCredential credential = FacebookAuthProvider.credential(
+        result.accessToken!.tokenString,
+      );
 
       // Sign in to Firebase with the credential
-      final UserCredential userCredential =
-          await firebaseAuth.signInWithCredential(credential);
+      final UserCredential userCredential = await firebaseAuth
+          .signInWithCredential(credential);
 
       return _userFromFirebase(userCredential.user!, 'facebook');
     } on FirebaseAuthException catch (e) {
@@ -95,13 +113,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> signInWithEmailPassword(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     try {
-      final UserCredential userCredential =
-          await firebaseAuth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final UserCredential userCredential = await firebaseAuth
+          .signInWithEmailAndPassword(email: email, password: password);
 
       if (userCredential.user == null) {
         throw AuthException('Sign in failed - no user returned');
@@ -117,13 +134,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> signUpWithEmailPassword(
-      String email, String password, String? displayName) async {
+    String email,
+    String password,
+    String? displayName,
+  ) async {
     try {
-      final UserCredential userCredential =
-          await firebaseAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final UserCredential userCredential = await firebaseAuth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       if (userCredential.user == null) {
         throw AuthException('Registration failed - no user returned');
@@ -149,7 +166,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       await Future.wait([
         firebaseAuth.signOut(),
+        firebaseAuth.signOut(),
         facebookAuth.logOut(),
+        googleSignIn.signOut(),
       ]);
     } catch (e) {
       throw AuthException('Sign out failed: ${e.toString()}');
@@ -183,7 +202,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw AuthException(_getAuthErrorMessage(e.code));
     } catch (e) {
       throw AuthException(
-          'Failed to send password reset email: ${e.toString()}');
+        'Failed to send password reset email: ${e.toString()}',
+      );
     }
   }
 

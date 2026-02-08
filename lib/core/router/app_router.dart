@@ -8,6 +8,9 @@ import '../../presentation/pages/placeholder_screens.dart';
 import '../../presentation/pages/auth/register_screen.dart';
 import '../../presentation/pages/auth/forgot_password_screen.dart';
 import '../../presentation/pages/profile/profile_screen.dart';
+import '../../presentation/pages/profile/edit_profile_screen.dart';
+import '../../presentation/pages/profile/notifications_screen.dart';
+import '../../presentation/pages/profile/help_screen.dart';
 import '../../presentation/widgets/organisms/navigation_shell.dart';
 
 // Private navigators
@@ -24,8 +27,7 @@ class AppRouter {
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      GoRoute(
-          path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
         parentNavigatorKey: _rootNavigatorKey,
@@ -74,6 +76,21 @@ class AppRouter {
         path: '/profile',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/edit-profile',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/help',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const HelpScreen(),
       ),
     ],
   );

@@ -12,7 +12,20 @@
           "package_name": "com.twodevlab.academic_task_manager"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "878034188842-csq0s50do00ul8ducg27tqh86v8ao9po.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.twodevlab.academic_task_manager",
+            "certificate_hash": "a561fd3a2950b7d309bb0e76a274df24291db4f0"
+          }
+        },
+        {
+          "client_id": "878034188842-srqgtsndcbpfjvetiffbnvksub1sdcg4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAEAAq0K7D_GXqJzjiYT41wk-RmAR5pBO0"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "878034188842-srqgtsndcbpfjvetiffbnvksub1sdcg4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "878034188842-cg1l6s652pnvcm2isa1t2h735de9nsi4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.academicTaskManager"
+              }
+            }
+          ]
         }
       }
     }

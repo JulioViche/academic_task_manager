@@ -40,8 +40,9 @@ class ProfileScreen extends ConsumerWidget {
             CircleAvatar(
               radius: 50,
               backgroundColor: theme.colorScheme.primaryContainer,
-              backgroundImage:
-                  user?.photoUrl != null ? NetworkImage(user!.photoUrl!) : null,
+              backgroundImage: user?.photoUrl != null
+                  ? NetworkImage(user!.photoUrl!)
+                  : null,
               child: user?.photoUrl == null
                   ? Text(
                       _getInitials(user?.displayName ?? user?.email ?? 'U'),
@@ -103,7 +104,7 @@ class ProfileScreen extends ConsumerWidget {
               icon: Icons.person_outline,
               title: 'Editar Perfil',
               onTap: () {
-                // TODO: Navigate to edit profile
+                context.push('/edit-profile');
               },
             ),
             _buildProfileOption(
@@ -111,7 +112,7 @@ class ProfileScreen extends ConsumerWidget {
               icon: Icons.notifications_outlined,
               title: 'Notificaciones',
               onTap: () {
-                // TODO: Navigate to notifications settings
+                context.push('/notifications');
               },
             ),
             _buildProfileOption(
@@ -119,7 +120,7 @@ class ProfileScreen extends ConsumerWidget {
               icon: Icons.palette_outlined,
               title: 'Apariencia',
               onTap: () {
-                // TODO: Navigate to appearance settings
+                context.push('/settings');
               },
             ),
             _buildProfileOption(
@@ -127,7 +128,7 @@ class ProfileScreen extends ConsumerWidget {
               icon: Icons.help_outline,
               title: 'Ayuda y Soporte',
               onTap: () {
-                // TODO: Navigate to help
+                context.push('/help');
               },
             ),
             _buildProfileOption(
@@ -190,9 +191,7 @@ class ProfileScreen extends ConsumerWidget {
         Icons.chevron_right,
         color: theme.colorScheme.onSurfaceVariant,
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onTap: onTap,
     );
   }
