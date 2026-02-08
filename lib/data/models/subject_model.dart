@@ -14,6 +14,8 @@ class SubjectModel extends Subject {
     super.isArchived,
     super.syncStatus,
     super.serverId,
+    super.colorHex,
+    super.teacherName,
   });
 
   factory SubjectModel.fromJson(Map<String, dynamic> json) {
@@ -22,7 +24,7 @@ class SubjectModel extends Subject {
       userId: json['user_id'],
       name: json['subject_name'],
       code: json['subject_code'],
-      description: json['description'],
+      description: json['description'] ?? '',
       color: json['color'],
       semester: json['semester'],
       professorName: json['professor_name'],
@@ -30,6 +32,8 @@ class SubjectModel extends Subject {
       isArchived: json['is_archived'] == 1,
       syncStatus: json['sync_status'] ?? 'synced',
       serverId: json['server_id'],
+      colorHex: json['color_hex'] ?? '#2196F3',
+      teacherName: json['teacher_name'] ?? '',
     );
   }
 
@@ -47,6 +51,8 @@ class SubjectModel extends Subject {
       'is_archived': isArchived ? 1 : 0,
       'sync_status': syncStatus,
       'server_id': serverId,
+      'color_hex': colorHex,
+      'teacher_name': teacherName,
     };
   }
 
@@ -64,6 +70,8 @@ class SubjectModel extends Subject {
       isArchived: subject.isArchived,
       syncStatus: subject.syncStatus,
       serverId: subject.serverId,
+      colorHex: subject.colorHex,
+      teacherName: subject.teacherName,
     );
   }
 }
