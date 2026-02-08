@@ -12,7 +12,10 @@ abstract class AuthRepository {
   Future<Either<Failure, UserEntity>> signUpWithEmailPassword(
     String email,
     String password,
+    String? displayName,
   );
   Future<Either<Failure, void>> signOut();
   Future<Either<Failure, UserEntity?>> getCurrentUser();
+  Future<Either<Failure, void>> sendPasswordResetEmail(String email);
+  Future<bool> isAuthenticated();
 }

@@ -5,6 +5,9 @@ import '../../presentation/pages/home_screen.dart';
 import '../../presentation/pages/login_screen.dart';
 import '../../presentation/pages/onboarding_screen.dart';
 import '../../presentation/pages/placeholder_screens.dart';
+import '../../presentation/pages/auth/register_screen.dart';
+import '../../presentation/pages/auth/forgot_password_screen.dart';
+import '../../presentation/pages/profile/profile_screen.dart';
 import '../../presentation/widgets/organisms/navigation_shell.dart';
 
 // Private navigators
@@ -21,7 +24,18 @@ class AppRouter {
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+          path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/register',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) {
@@ -55,6 +69,11 @@ class AppRouter {
         path: '/settings',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/profile',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ProfileScreen(),
       ),
     ],
   );

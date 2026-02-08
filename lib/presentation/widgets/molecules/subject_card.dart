@@ -40,9 +40,9 @@ class SubjectCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
-              if (subject.code.isNotEmpty)
+              if ((subject.code ?? '').isNotEmpty)
                 Text(
-                  subject.code,
+                  subject.code ?? '',
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
