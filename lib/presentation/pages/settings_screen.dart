@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/theme/theme_notifier.dart';
 import '../providers/auth_notifier.dart';
 import '../providers/auth_state.dart';
 
@@ -29,7 +30,7 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: const Text('Tema del sistema'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // TODO: Implement theme selection
+              _showThemeDialog(context, ref);
             },
           ),
           ListTile(
@@ -76,6 +77,61 @@ class SettingsScreen extends ConsumerWidget {
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Cerrar Sesión'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showThemeDialog(BuildContext context, WidgetRef ref) {
+    final currentTheme = ref.read(themeProvider);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Seleccionar Tema'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<ThemeMode>(
+              title: const Text('Sistema'),
+              value: ThemeMode.system,
+              groupValue: currentTheme,
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(themeProvider.notifier).setTheme(value);
+                  Navigator.pop(context);
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('Claro'),
+              value: ThemeMode.light,
+              groupValue: currentTheme,
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(themeProvider.notifier).setTheme(value);
+                  Navigator.pop(context);
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('Oscuro'),
+              value: ThemeMode.dark,
+              groupValue: currentTheme,
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(themeProvider.notifier).setTheme(value);
+                  Navigator.pop(context);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
           ),
         ],
       ),
