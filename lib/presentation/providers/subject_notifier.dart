@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/subject_entity.dart';
 import '../../data/repositories/subject_repository_impl.dart';
 import '../../data/datasources/local/subject_local_data_source.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/network/network_info.dart';
+import '../../data/datasources/remote/subject_remote_data_source.dart';
 import '../../data/datasources/local/database_helper.dart';
 
 /// State for subjects
@@ -40,7 +43,7 @@ class SubjectNotifier extends StateNotifier<SubjectState> {
   Future<void> loadSubjects(String userId) async {
     _currentUserId = userId;
     state = state.copyWith(isLoading: true, errorMessage: null);
-    
+
     try {
       final subjects = await repository.getSubjects(userId);
       state = state.copyWith(subjects: subjects, isLoading: false);
@@ -133,12 +136,21 @@ final subjectLocalDataSourceProvider = Provider<SubjectLocalDataSource>((ref) {
   );
 });
 
+final subjectRemoteDataSourceProvider = Provider<SubjectRemoteDataSource>((
+  ref,
+) {
+  return SubjectRemoteDataSourceImpl(firestore: FirebaseFirestore.instance);
+});
+
 final subjectRepositoryProvider = Provider<SubjectRepositoryImpl>((ref) {
   return SubjectRepositoryImpl(
     localDataSource: ref.watch(subjectLocalDataSourceProvider),
+    remoteDataSource: ref.watch(subjectRemoteDataSourceProvider),
+    networkInfo: ref.watch(networkInfoProvider),
   );
 });
 
-final subjectNotifierProvider = StateNotifierProvider<SubjectNotifier, SubjectState>((ref) {
-  return SubjectNotifier(ref.watch(subjectRepositoryProvider));
-});
+final subjectNotifierProvider =
+    StateNotifierProvider<SubjectNotifier, SubjectState>((ref) {
+      return SubjectNotifier(ref.watch(subjectRepositoryProvider));
+    });

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_model.dart';
 import '../../../core/error/exceptions.dart';
 
@@ -35,11 +36,13 @@ abstract class AuthRemoteDataSource {
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseAuth firebaseAuth;
   final FacebookAuth facebookAuth;
+  final FirebaseFirestore firestore;
   final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
 
   AuthRemoteDataSourceImpl({
     required this.firebaseAuth,
     required this.facebookAuth,
+    required this.firestore,
   });
 
   @override
@@ -70,7 +73,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw AuthException('Google sign in failed - no user returned');
       }
 
-      return _userFromFirebase(userCredential.user!, 'google');
+      final userModel = _userFromFirebase(userCredential.user!, 'google');
+
+      // Save/Update in Firestore
+      await _saveUserToFirestore(userModel);
+
+      return userModel;
     } on FirebaseAuthException catch (e) {
       throw AuthException(e.message ?? 'Google sign in failed');
     } catch (e) {
@@ -102,7 +110,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final UserCredential userCredential = await firebaseAuth
           .signInWithCredential(credential);
 
-      return _userFromFirebase(userCredential.user!, 'facebook');
+      final userModel = _userFromFirebase(userCredential.user!, 'facebook');
+
+      // Save/Update in Firestore
+      await _saveUserToFirestore(userModel);
+
+      return userModel;
     } on FirebaseAuthException catch (e) {
       throw AuthException(e.message ?? 'Facebook sign in failed');
     } catch (e) {
@@ -124,7 +137,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw AuthException('Sign in failed - no user returned');
       }
 
-      return _userFromFirebase(userCredential.user!, 'firebase');
+      final userModel = _userFromFirebase(userCredential.user!, 'firebase');
+
+      // Update last login in Firestore
+      await _saveUserToFirestore(userModel);
+
+      return userModel;
     } on FirebaseAuthException catch (e) {
       throw AuthException(_getAuthErrorMessage(e.code));
     } catch (e) {
@@ -153,7 +171,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       final currentUser = firebaseAuth.currentUser ?? userCredential.user!;
-      return _userFromFirebase(currentUser, 'firebase');
+      final userModel = _userFromFirebase(currentUser, 'firebase');
+
+      // Save to Firestore
+      await _saveUserToFirestore(userModel);
+
+      return userModel;
     } on FirebaseAuthException catch (e) {
       throw AuthException(_getAuthErrorMessage(e.code));
     } catch (e) {
@@ -246,6 +269,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return 'This sign-in method is not enabled';
       default:
         return 'Authentication failed. Please try again';
+    }
+  }
+
+  /// Save user data to Firestore
+  Future<void> _saveUserToFirestore(UserModel user) async {
+    try {
+      final userDoc = firestore.collection('users').doc(user.userId);
+      final docSnapshot = await userDoc.get();
+
+      if (!docSnapshot.exists) {
+        // Create new user document
+        await userDoc.set(user.toJson());
+      } else {
+        // Update existing user (e.g. last login)
+        await userDoc.update({
+          'last_login': DateTime.now().millisecondsSinceEpoch,
+        });
+      }
+    } catch (e) {
+      throw AuthException('Failed to save user profile: ${e.toString()}');
     }
   }
 }

@@ -24,7 +24,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
   void _loadSubjects() {
     final authState = ref.read(authNotifierProvider);
     if (authState.user != null) {
-      ref.read(subjectNotifierProvider.notifier).loadSubjects(authState.user!.userId);
+      ref
+          .read(subjectNotifierProvider.notifier)
+          .loadSubjects(authState.user!.userId);
     }
   }
 
@@ -36,10 +38,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
       appBar: AppBar(
         title: const Text('Materias'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadSubjects,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadSubjects),
         ],
       ),
       body: _buildBody(context, subjectState),
@@ -64,7 +63,10 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
             const SizedBox(height: 16),
             Text(state.errorMessage!),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _loadSubjects, child: const Text('Retry')),
+            ElevatedButton(
+              onPressed: _loadSubjects,
+              child: const Text('Retry'),
+            ),
           ],
         ),
       );
@@ -101,7 +103,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
         onSave: (name, code, color, teacher) async {
           final authState = ref.read(authNotifierProvider);
           if (authState.user == null) return;
-          
+
           final subject = Subject(
             id: const Uuid().v4(),
             userId: authState.user!.userId,
@@ -110,9 +112,12 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
             colorHex: color,
             teacherName: teacher,
           );
-          
-          final success = await ref.read(subjectNotifierProvider.notifier).addSubject(subject);
-          if (success && mounted) {
+
+          final success = await ref
+              .read(subjectNotifierProvider.notifier)
+              .addSubject(subject);
+          if (!context.mounted) return;
+          if (success) {
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Materia agregada correctamente')),
@@ -138,9 +143,12 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
             colorHex: color,
             teacherName: teacher,
           );
-          
-          final success = await ref.read(subjectNotifierProvider.notifier).updateSubject(updatedSubject);
-          if (success && mounted) {
+
+          final success = await ref
+              .read(subjectNotifierProvider.notifier)
+              .updateSubject(updatedSubject);
+          if (!context.mounted) return;
+          if (success) {
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Materia actualizada')),
@@ -156,7 +164,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Materia'),
-        content: Text('¿Estás seguro de eliminar "${subject.name}"?\nEsta acción no se puede deshacer.'),
+        content: Text(
+          '¿Estás seguro de eliminar "${subject.name}"?\nEsta acción no se puede deshacer.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -165,8 +175,11 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
           FilledButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await ref.read(subjectNotifierProvider.notifier).deleteSubject(subject.id);
-              if (success && mounted) {
+              final success = await ref
+                  .read(subjectNotifierProvider.notifier)
+                  .deleteSubject(subject.id);
+              if (!context.mounted) return;
+              if (success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Materia eliminada')),
                 );
@@ -205,7 +218,7 @@ class _SubjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _parseColor(subject.colorHex);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -247,9 +260,9 @@ class _SubjectCard extends StatelessWidget {
                       if (subject.teacherName.isNotEmpty)
                         Text(
                           subject.teacherName,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                         ),
                     ],
                   ),
@@ -261,7 +274,10 @@ class _SubjectCard extends StatelessWidget {
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                    const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Eliminar'),
+                    ),
                   ],
                 ),
               ],
@@ -275,7 +291,8 @@ class _SubjectCard extends StatelessWidget {
 
 class SubjectFormSheet extends StatefulWidget {
   final Subject? subject;
-  final Function(String name, String? code, String color, String teacher) onSave;
+  final Function(String name, String? code, String color, String teacher)
+  onSave;
 
   const SubjectFormSheet({super.key, this.subject, required this.onSave});
 
@@ -291,8 +308,14 @@ class _SubjectFormSheetState extends State<SubjectFormSheet> {
   final _formKey = GlobalKey<FormState>();
 
   final List<String> _colors = [
-    '#2196F3', '#4CAF50', '#FF9800', '#F44336',
-    '#9C27B0', '#00BCD4', '#795548', '#607D8B',
+    '#2196F3',
+    '#4CAF50',
+    '#FF9800',
+    '#F44336',
+    '#9C27B0',
+    '#00BCD4',
+    '#795548',
+    '#607D8B',
   ];
 
   @override
@@ -300,7 +323,9 @@ class _SubjectFormSheetState extends State<SubjectFormSheet> {
     super.initState();
     _nameController = TextEditingController(text: widget.subject?.name ?? '');
     _codeController = TextEditingController(text: widget.subject?.code ?? '');
-    _teacherController = TextEditingController(text: widget.subject?.teacherName ?? '');
+    _teacherController = TextEditingController(
+      text: widget.subject?.teacherName ?? '',
+    );
     _selectedColor = widget.subject?.colorHex ?? '#2196F3';
   }
 
@@ -389,11 +414,20 @@ class _SubjectFormSheetState extends State<SubjectFormSheet> {
                             ? Border.all(color: Colors.white, width: 3)
                             : null,
                         boxShadow: isSelected
-                            ? [BoxShadow(color: _parseColor(color), blurRadius: 8)]
+                            ? [
+                                BoxShadow(
+                                  color: _parseColor(color),
+                                  blurRadius: 8,
+                                ),
+                              ]
                             : null,
                       ),
                       child: isSelected
-                          ? const Icon(Icons.check, color: Colors.white, size: 20)
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 20,
+                            )
                           : null,
                     ),
                   );
@@ -405,7 +439,9 @@ class _SubjectFormSheetState extends State<SubjectFormSheet> {
                   if (_formKey.currentState!.validate()) {
                     widget.onSave(
                       _nameController.text.trim(),
-                      _codeController.text.trim().isEmpty ? null : _codeController.text.trim(),
+                      _codeController.text.trim().isEmpty
+                          ? null
+                          : _codeController.text.trim(),
                       _selectedColor,
                       _teacherController.text.trim(),
                     );
@@ -413,7 +449,11 @@ class _SubjectFormSheetState extends State<SubjectFormSheet> {
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(widget.subject == null ? 'Agregar Materia' : 'Guardar Cambios'),
+                  child: Text(
+                    widget.subject == null
+                        ? 'Agregar Materia'
+                        : 'Guardar Cambios',
+                  ),
                 ),
               ),
               const SizedBox(height: 24),

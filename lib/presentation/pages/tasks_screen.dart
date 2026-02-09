@@ -7,6 +7,7 @@ import '../providers/task_notifier.dart';
 import '../providers/subject_notifier.dart';
 import '../providers/auth_notifier.dart';
 import '../widgets/molecules/empty_state.dart';
+import 'tasks/task_detail_screen.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
@@ -15,7 +16,8 @@ class TasksScreen extends ConsumerStatefulWidget {
   ConsumerState<TasksScreen> createState() => _TasksScreenState();
 }
 
-class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProviderStateMixin {
+class _TasksScreenState extends ConsumerState<TasksScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -35,7 +37,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
     final authState = ref.read(authNotifierProvider);
     if (authState.user != null) {
       ref.read(taskNotifierProvider.notifier).loadTasks(authState.user!.userId);
-      ref.read(subjectNotifierProvider.notifier).loadSubjects(authState.user!.userId);
+      ref
+          .read(subjectNotifierProvider.notifier)
+          .loadSubjects(authState.user!.userId);
     }
   }
 
@@ -67,7 +71,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddTaskDialog(context),
+        onPressed: () => _showAddTaskDialog(),
         child: const Icon(Icons.add),
       ),
     );
@@ -94,8 +98,8 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
         return _TaskCard(
           task: task,
           onComplete: () => _completeTask(task),
-          onEdit: () => _showEditTaskDialog(context, task),
-          onDelete: () => _confirmDeleteTask(context, task),
+          onEdit: () => _showEditTaskDialog(task),
+          onDelete: () => _confirmDeleteTask(task),
         );
       },
     );
@@ -103,25 +107,29 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
 
   void _completeTask(Task task) async {
     await ref.read(taskNotifierProvider.notifier).completeTask(task.id);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('¡Tarea completada!')),
-      );
-    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('¡Tarea completada!')));
   }
 
-  void _showAddTaskDialog(BuildContext context) {
+  void _showAddTaskDialog() {
     final subjects = ref.read(subjectNotifierProvider).subjects;
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => TaskFormSheet(
+      builder: (_) => TaskFormSheet(
         subjects: subjects,
         onSave: (title, description, subjectId, priority, dueDate) async {
           final authState = ref.read(authNotifierProvider);
-          if (authState.user == null) return;
-          
+          if (authState.user == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Error: No hay sesión activa')),
+            );
+            return;
+          }
+
           final now = DateTime.now();
           final task = Task(
             id: const Uuid().v4(),
@@ -134,26 +142,29 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
             createdAt: now,
             updatedAt: now,
           );
-          
-          final success = await ref.read(taskNotifierProvider.notifier).addTask(task);
-          if (success && mounted) {
+
+          final success = await ref
+              .read(taskNotifierProvider.notifier)
+              .addTask(task);
+          if (!mounted) return;
+          if (success) {
             Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Tarea agregada')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Tarea agregada')));
           }
         },
       ),
     );
   }
 
-  void _showEditTaskDialog(BuildContext context, Task task) {
+  void _showEditTaskDialog(Task task) {
     final subjects = ref.read(subjectNotifierProvider).subjects;
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => TaskFormSheet(
+      builder: (_) => TaskFormSheet(
         task: task,
         subjects: subjects,
         onSave: (title, description, subjectId, priority, dueDate) async {
@@ -169,23 +180,26 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
             createdAt: task.createdAt,
             updatedAt: DateTime.now(),
           );
-          
-          final success = await ref.read(taskNotifierProvider.notifier).updateTask(updatedTask);
-          if (success && mounted) {
+
+          final success = await ref
+              .read(taskNotifierProvider.notifier)
+              .updateTask(updatedTask);
+          if (!mounted) return;
+          if (success) {
             Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Tarea actualizada')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Tarea actualizada')));
           }
         },
       ),
     );
   }
 
-  void _confirmDeleteTask(BuildContext context, Task task) {
+  void _confirmDeleteTask(Task task) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Eliminar Tarea'),
         content: Text('¿Eliminar "${task.title}"?'),
         actions: [
@@ -197,11 +211,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
             onPressed: () async {
               Navigator.pop(context);
               await ref.read(taskNotifierProvider.notifier).deleteTask(task.id);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Tarea eliminada')),
-                );
-              }
+              if (!mounted) return;
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Tarea eliminada')));
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Eliminar'),
@@ -227,99 +240,122 @@ class _TaskCard extends StatelessWidget {
 
   Color _getPriorityColor(String priority) {
     switch (priority) {
-      case 'urgent': return Colors.red;
-      case 'high': return Colors.orange;
-      case 'medium': return Colors.blue;
-      default: return Colors.grey;
+      case 'urgent':
+        return Colors.red;
+      case 'high':
+        return Colors.orange;
+      case 'medium':
+        return Colors.blue;
+      default:
+        return Colors.grey;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isCompleted = task.status == 'completed';
-    final isOverdue = task.dueDate != null && 
-        task.dueDate!.isBefore(DateTime.now()) && 
+    final isOverdue =
+        task.dueDate != null &&
+        task.dueDate!.isBefore(DateTime.now()) &&
         !isCompleted;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Checkbox(
-              value: isCompleted,
-              onChanged: isCompleted ? null : (_) => onComplete(),
-              activeColor: Colors.green,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TaskDetailScreen(task: task),
             ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      decoration: isCompleted ? TextDecoration.lineThrough : null,
-                      color: isCompleted ? Colors.grey : null,
-                    ),
-                  ),
-                  if (task.description != null && task.description!.isNotEmpty)
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Checkbox(
+                value: isCompleted,
+                onChanged: isCompleted ? null : (_) => onComplete(),
+                activeColor: Colors.green,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      task.description!,
-                      style: Theme.of(context).textTheme.bodySmall,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      task.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        decoration: isCompleted
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: isCompleted ? Colors.grey : null,
+                      ),
                     ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: _getPriorityColor(task.priority).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          task.priority.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: _getPriorityColor(task.priority),
-                            fontWeight: FontWeight.bold,
+                    if (task.description != null &&
+                        task.description!.isNotEmpty)
+                      Text(
+                        task.description!,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getPriorityColor(
+                              task.priority,
+                            ).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            task.priority.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: _getPriorityColor(task.priority),
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                      if (task.dueDate != null) ...[
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.schedule,
-                          size: 14,
-                          color: isOverdue ? Colors.red : Colors.grey,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatDate(task.dueDate!),
-                          style: TextStyle(
-                            fontSize: 12,
+                        if (task.dueDate != null) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.schedule,
+                            size: 14,
                             color: isOverdue ? Colors.red : Colors.grey,
                           ),
-                        ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatDate(task.dueDate!),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isOverdue ? Colors.red : Colors.grey,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit') onEdit();
+                  if (value == 'delete') onDelete();
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                  const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
                 ],
               ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'edit') onEdit();
-                if (value == 'delete') onDelete();
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -333,7 +369,14 @@ class _TaskCard extends StatelessWidget {
 class TaskFormSheet extends StatefulWidget {
   final Task? task;
   final List<Subject> subjects;
-  final Function(String title, String? description, String subjectId, String priority, DateTime? dueDate) onSave;
+  final Function(
+    String title,
+    String? description,
+    String subjectId,
+    String priority,
+    DateTime? dueDate,
+  )
+  onSave;
 
   const TaskFormSheet({
     super.key,
@@ -360,7 +403,9 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.task?.title ?? '');
-    _descriptionController = TextEditingController(text: widget.task?.description ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.task?.description ?? '',
+    );
     _selectedSubjectId = widget.task?.subjectId;
     _selectedPriority = widget.task?.priority ?? 'medium';
     _dueDate = widget.task?.dueDate;
@@ -400,7 +445,8 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                   labelText: 'Título *',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => value?.isEmpty == true ? 'Título requerido' : null,
+                validator: (value) =>
+                    value?.isEmpty == true ? 'Título requerido' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -413,39 +459,49 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedSubjectId,
+                initialValue: _selectedSubjectId,
                 decoration: const InputDecoration(
                   labelText: 'Materia *',
                   border: OutlineInputBorder(),
                 ),
-                items: widget.subjects.map((s) => DropdownMenuItem(
-                  value: s.id,
-                  child: Text(s.name),
-                )).toList(),
-                onChanged: (value) => setState(() => _selectedSubjectId = value),
-                validator: (value) => value == null ? 'Selecciona una materia' : null,
+                items: widget.subjects
+                    .map(
+                      (s) => DropdownMenuItem(value: s.id, child: Text(s.name)),
+                    )
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _selectedSubjectId = value),
+                validator: (value) =>
+                    value == null ? 'Selecciona una materia' : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedPriority,
+                initialValue: _selectedPriority,
                 decoration: const InputDecoration(
                   labelText: 'Prioridad',
                   border: OutlineInputBorder(),
                 ),
-                items: _priorities.map((p) => DropdownMenuItem(
-                  value: p,
-                  child: Text(p.toUpperCase()),
-                )).toList(),
-                onChanged: (value) => setState(() => _selectedPriority = value ?? 'medium'),
+                items: _priorities
+                    .map(
+                      (p) => DropdownMenuItem(
+                        value: p,
+                        child: Text(p.toUpperCase()),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _selectedPriority = value ?? 'medium'),
               ),
               const SizedBox(height: 16),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.calendar_today),
-                title: Text(_dueDate == null 
-                    ? 'Fecha de entrega' 
-                    : '${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}'),
-                trailing: _dueDate != null 
+                title: Text(
+                  _dueDate == null
+                      ? 'Fecha de entrega'
+                      : '${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}',
+                ),
+                trailing: _dueDate != null
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () => setState(() => _dueDate = null),
@@ -464,10 +520,13 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: () {
-                  if (_formKey.currentState!.validate() && _selectedSubjectId != null) {
+                  if (_formKey.currentState!.validate() &&
+                      _selectedSubjectId != null) {
                     widget.onSave(
                       _titleController.text.trim(),
-                      _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+                      _descriptionController.text.trim().isEmpty
+                          ? null
+                          : _descriptionController.text.trim(),
                       _selectedSubjectId!,
                       _selectedPriority,
                       _dueDate,
@@ -476,7 +535,9 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(widget.task == null ? 'Agregar Tarea' : 'Guardar Cambios'),
+                  child: Text(
+                    widget.task == null ? 'Agregar Tarea' : 'Guardar Cambios',
+                  ),
                 ),
               ),
               const SizedBox(height: 24),

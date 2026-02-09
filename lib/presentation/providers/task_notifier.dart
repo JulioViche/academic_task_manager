@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/task_entity.dart';
 import '../../data/repositories/task_repository_impl.dart';
 import '../../data/datasources/local/task_local_data_source.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/network/network_info.dart';
+import '../../data/datasources/remote/task_remote_data_source.dart';
 import 'subject_notifier.dart';
 
 /// State for tasks
@@ -48,12 +51,12 @@ class TaskNotifier extends StateNotifier<TaskState> {
   Future<void> loadTasks(String userId) async {
     _currentUserId = userId;
     state = state.copyWith(isLoading: true, errorMessage: null);
-    
+
     try {
       final tasks = await repository.getTasks(userId);
       final pendingTasks = await repository.getPendingTasks(userId);
       final overdueTasks = await repository.getOverdueTasks(userId);
-      
+
       state = state.copyWith(
         tasks: tasks,
         pendingTasks: pendingTasks,
@@ -157,12 +160,20 @@ final taskLocalDataSourceProvider = Provider<TaskLocalDataSource>((ref) {
   );
 });
 
+final taskRemoteDataSourceProvider = Provider<TaskRemoteDataSource>((ref) {
+  return TaskRemoteDataSourceImpl(firestore: FirebaseFirestore.instance);
+});
+
 final taskRepositoryProvider = Provider<TaskRepositoryImpl>((ref) {
   return TaskRepositoryImpl(
     localDataSource: ref.watch(taskLocalDataSourceProvider),
+    remoteDataSource: ref.watch(taskRemoteDataSourceProvider),
+    networkInfo: ref.watch(networkInfoProvider),
   );
 });
 
-final taskNotifierProvider = StateNotifierProvider<TaskNotifier, TaskState>((ref) {
+final taskNotifierProvider = StateNotifierProvider<TaskNotifier, TaskState>((
+  ref,
+) {
   return TaskNotifier(ref.watch(taskRepositoryProvider));
 });
