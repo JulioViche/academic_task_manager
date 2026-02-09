@@ -548,14 +548,626 @@ Semana 8: Manuales + Publicación Google Play
 
 ---
 
-# SPRINT 4-8: [Resto del plan como se describió anteriormente]
+# SPRINT 4: ARCHIVOS Y CALENDARIO (Semana 4)
 
-**NOTA:** Los Sprints 4-8 siguen la estructura completa con:
-- Sprint 4: Archivos y Calendario
-- Sprint 5: Sincronización Offline-First
-- Sprint 6: Notificaciones, Sensores y Calificaciones
-- Sprint 7: Lecturas PDF y Pulido
-- Sprint 8: Manuales y Publicación
+## 🎯 Objetivos
+- Integrar cámara para adjuntar fotos a tareas
+- Permitir adjuntar archivos PDF
+- Almacenar adjuntos en Firebase Storage y localmente
+- Implementar UI de gestión de archivos adjuntos
+
+## 👥 División de Tareas
+
+### 📱 DENISE - Backend Archivos (35 horas)
+
+#### Día 1: AttachmentLocalDataSource
+- [ ] Crear AttachmentLocalDataSource:
+  ```dart
+  abstract class AttachmentLocalDataSource {
+    Future<void> insertAttachment(AttachmentModel attachment);
+    Future<List<AttachmentModel>> getAttachmentsByTask(String taskId);
+    Future<List<AttachmentModel>> getAttachmentsBySubject(String subjectId);
+    Future<void> deleteAttachment(String attachmentId);
+    Future<List<AttachmentModel>> getPendingSyncAttachments();
+  }
+  ```
+- [ ] Implementar queries SQL para tabla Attachments
+- [ ] Manejo de rutas locales de archivos con `path_provider`
+
+#### Día 2: Completar AttachmentRepositoryImpl
+- [ ] Integrar AttachmentLocalDataSource al repositorio existente
+- [ ] Implementar lógica offline-first para archivos:
+  - Guardar archivo localmente primero
+  - Subir a Firebase Storage si hay red
+  - Marcar como `pending_sync` si no hay red
+- [ ] Completar lógica de `deleteAttachment` (eliminar de Storage + Firestore + local)
+
+#### Día 3: Servicio de Cámara y File Picker
+- [ ] Crear FileService:
+  ```dart
+  class FileService {
+    Future<File?> pickImage({required ImageSource source});
+    Future<File?> pickPDF();
+    Future<File> saveFileLocally(File file, String directory);
+    Future<void> deleteLocalFile(String path);
+    String getFileExtension(String path);
+    String getMimeType(String path);
+  }
+  ```
+- [ ] Integrar `image_picker` para cámara y galería
+- [ ] Integrar `file_picker` para selección de PDFs
+- [ ] Crear provider de FileService en Riverpod
+
+#### Día 4: Evento Calendario - Backend
+- [ ] Crear CalendarEventLocalDataSource:
+  ```dart
+  abstract class CalendarEventLocalDataSource {
+    Future<List<CalendarEventModel>> getEventsByMonth(int year, int month);
+    Future<void> insertEvent(CalendarEventModel event);
+    Future<void> updateEvent(CalendarEventModel event);
+    Future<void> deleteEvent(String eventId);
+  }
+  ```
+- [ ] Implementar CalendarEventRepository
+- [ ] Crear use cases: GetEvents, CreateEvent, UpdateEvent, DeleteEvent
+
+#### Día 5: Integración y Pruebas
+- [ ] Conectar calendario con eventos de tareas (fechas de entrega)
+- [ ] Pruebas de subida/descarga de archivos
+- [ ] Verificar persistencia local de adjuntos
+
+### 🎨 JULIO - UI Archivos y Calendario (35 horas)
+
+#### Día 1-2: UI de Adjuntos en Tareas
+- [ ] Crear AttachmentListWidget:
+  - Lista de archivos adjuntos con icono según tipo (📷 foto, 📄 PDF)
+  - Botón para eliminar adjunto
+  - Indicador de estado de sync (sincronizado/pendiente)
+- [ ] Crear AttachmentPickerBottomSheet:
+  ```dart
+  // Opciones: Tomar foto, Elegir de galería, Seleccionar PDF
+  ```
+- [ ] Integrar picker en TaskDetailScreen y AddEditTaskScreen
+- [ ] Previsualización de imagen adjunta (thumbnail)
+
+#### Día 3: Visor de Imágenes
+- [ ] Crear ImageViewerScreen:
+  - Imagen a pantalla completa
+  - Zoom con pinch
+  - Botón compartir/eliminar
+- [ ] Integrar navegación desde AttachmentListWidget
+
+#### Día 4: Mejoras al Calendario
+- [ ] Agregar FAB para crear evento rápido desde CalendarScreen
+- [ ] Crear formulario de evento:
+  - Título, descripción, fecha/hora, color
+  - Asociar a materia (opcional)
+- [ ] Indicador visual de cantidad de tareas por día (dots de colores)
+
+#### Día 5: Pulido UI de archivos
+- [ ] Animaciones al agregar/eliminar adjuntos
+- [ ] Estados de carga durante upload
+- [ ] Barra de progreso de subida
+- [ ] Confirmar eliminación con dialog
+
+---
+
+# SPRINT 5: SINCRONIZACIÓN OFFLINE-FIRST (Semana 5)
+
+## 🎯 Objetivos
+- Implementar cola de sincronización para operaciones pendientes
+- Sincronización bidireccional con Firestore
+- Listener de conectividad que dispare sync automática
+- Resolución de conflictos (último guardado prevalece)
+
+## 👥 División de Tareas
+
+### 📱 DENISE - Backend Sincronización (35 horas)
+
+#### Día 1: Cola de Sincronización
+- [ ] Crear SyncQueueLocalDataSource:
+  ```dart
+  abstract class SyncQueueLocalDataSource {
+    Future<void> addToQueue(SyncOperation operation);
+    Future<List<SyncOperation>> getPendingOperations();
+    Future<void> markAsCompleted(String operationId);
+    Future<void> markAsFailed(String operationId, String error);
+    Future<void> clearCompleted();
+  }
+
+  class SyncOperation {
+    final String id;
+    final String tableName;    // 'subjects', 'tasks', 'attachments'
+    final String recordId;
+    final String operationType; // 'create', 'update', 'delete'
+    final String jsonData;
+    final DateTime createdAt;
+    final String status;       // 'pending', 'in_progress', 'completed', 'failed'
+    final int retryCount;
+  }
+  ```
+- [ ] Implementar tabla `sync_queue` en SQLite
+- [ ] Guardar operaciones fallidas automáticamente
+
+#### Día 2: SyncService
+- [ ] Crear SyncService:
+  ```dart
+  class SyncService {
+    Future<void> syncAll();
+    Future<void> syncSubjects();
+    Future<void> syncTasks();
+    Future<void> syncAttachments();
+    Future<void> processQueue();
+    Stream<SyncStatus> get syncStatusStream;
+  }
+  ```
+- [ ] Implementar procesamiento de cola (FIFO)
+- [ ] Manejo de reintentos (máximo 3 intentos)
+- [ ] Logging de historial de sincronización en tabla `sync_history`
+
+#### Día 3: Sincronización Bidireccional
+- [ ] Implementar pull desde Firestore:
+  ```dart
+  // Comparar timestamps locales vs remotos
+  // Si remoto es más reciente → actualizar local
+  // Si local es más reciente → push a remoto
+  ```
+- [ ] Resolución de conflictos: `last_write_wins`
+  - Comparar `updated_at` de registro local vs remoto
+  - El más reciente prevalece
+- [ ] Merge de datos sin pérdida
+
+#### Día 4: Listener de Conectividad
+- [ ] Crear ConnectivityListener:
+  ```dart
+  class ConnectivityListener {
+    void startListening();
+    void stopListening();
+    // Cuando la red vuelve → disparar syncService.processQueue()
+  }
+  ```
+- [ ] Integrar con `connectivity_plus` usando `onConnectivityChanged` stream
+- [ ] Inicializar en main.dart al arrancar la app
+- [ ] Actualizar `sync_status` en cada registro
+
+#### Día 5: Actualizar Repositorios
+- [ ] Modificar SubjectRepositoryImpl:
+  - Si falla el remoto → agregar a SyncQueue
+- [ ] Modificar TaskRepositoryImpl:
+  - Si falla el remoto → agregar a SyncQueue
+- [ ] Modificar AttachmentRepositoryImpl:
+  - Si falla el upload → guardar localmente con status `pending_sync`
+  - Agregar a SyncQueue
+- [ ] Pruebas: desconectar red, crear datos, reconectar, verificar sync
+
+### 🎨 JULIO - UI de Sincronización (35 horas)
+
+#### Día 1-2: Indicadores de Estado de Sync
+- [ ] Crear SyncStatusBadge widget:
+  ```dart
+  // Ícono según estado: ✅ synced, 🔄 syncing, ⏳ pending, ❌ failed
+  ```
+- [ ] Mostrar en SubjectCard y TaskCard
+- [ ] Banner de "Sin conexión" en la parte superior de la app
+- [ ] Animación de sincronización en progreso
+
+#### Día 3: Pantalla de Historial de Sync
+- [ ] Crear SyncHistoryScreen:
+  - Lista de operaciones de sync con timestamp
+  - Estado de cada operación
+  - Botón "Sincronizar ahora"
+- [ ] Agregar acceso desde Settings o Drawer
+
+#### Día 4-5: Pull-to-Refresh y Mejoras
+- [ ] Implementar pull-to-refresh en:
+  - SubjectsScreen
+  - TasksScreen
+  - HomeScreen
+- [ ] Mostrar último timestamp de sincronización
+- [ ] Snackbar cuando sync se completa exitosamente
+- [ ] Dialog de confirmación para sync manual
+
+---
+
+# SPRINT 6: NOTIFICACIONES, SENSORES Y CALIFICACIONES (Semana 6)
+
+## 🎯 Objetivos
+- Implementar notificaciones locales para recordatorios
+- Implementar push notifications con Firebase Cloud Messaging
+- Integrar sensor de luz para cambio automático de tema
+- Implementar CRUD de calificaciones y estadísticas
+
+## 👥 División de Tareas
+
+### 📱 DENISE - Backend Notificaciones y Calificaciones (35 horas)
+
+#### Día 1: Notificaciones Locales
+- [ ] Descomentar `flutter_local_notifications` en pubspec.yaml
+- [ ] Crear NotificationService:
+  ```dart
+  class NotificationService {
+    Future<void> initialize();
+    Future<void> showNotification({
+      required String title,
+      required String body,
+      String? payload,
+    });
+    Future<void> scheduleNotification({
+      required String title,
+      required String body,
+      required DateTime scheduledDate,
+      String? payload,
+    });
+    Future<void> cancelNotification(int id);
+    Future<void> cancelAllNotifications();
+  }
+  ```
+- [ ] Configurar canales de notificación para Android
+- [ ] Programar recordatorios automáticos:
+  - 24 horas antes de la entrega
+  - 1 hora antes de la entrega
+  - Al momento de vencimiento
+
+#### Día 2: Push Notifications (FCM)
+- [ ] Configurar Firebase Cloud Messaging:
+  ```dart
+  class FCMService {
+    Future<void> initialize();
+    Future<String?> getToken();
+    void onMessage(RemoteMessage message);
+    void onMessageOpenedApp(RemoteMessage message);
+    Future<void> subscribeToTopic(String topic);
+  }
+  ```
+- [ ] Guardar FCM token en Firestore (colección `user_tokens`)
+- [ ] Manejo de notificaciones en foreground y background
+- [ ] Navegación a pantalla específica al tocar notificación
+
+#### Día 3: Calificaciones - Data Layer
+- [ ] Crear GradeLocalDataSource:
+  ```dart
+  abstract class GradeLocalDataSource {
+    Future<List<GradeModel>> getGradesBySubject(String subjectId);
+    Future<void> insertGrade(GradeModel grade);
+    Future<void> updateGrade(GradeModel grade);
+    Future<void> deleteGrade(String gradeId);
+    Future<double> getAverageBySubject(String subjectId);
+  }
+  ```
+- [ ] Implementar GradeRepositoryImpl
+- [ ] Crear use cases: GetGrades, AddGrade, UpdateGrade, DeleteGrade, GetAverage
+
+#### Día 4: Estadísticas
+- [ ] Crear StatisticsService:
+  ```dart
+  class StatisticsService {
+    Future<Map<String, double>> getAveragesBySubject(String userId);
+    Future<int> getCompletedTasksCount(String userId);
+    Future<int> getPendingTasksCount(String userId);
+    Future<int> getOverdueTasksCount(String userId);
+    Future<double> getCompletionRate(String userId);
+    Future<Map<String, int>> getTasksPerSubject(String userId);
+  }
+  ```
+- [ ] Implementar queries SQL con agregaciones
+- [ ] Crear providers de Riverpod para estadísticas
+
+#### Día 5: Notificaciones - Data Layer
+- [ ] Crear NotificationLocalDataSource:
+  ```dart
+  abstract class NotificationLocalDataSource {
+    Future<List<NotificationModel>> getAllNotifications(String userId);
+    Future<void> insertNotification(NotificationModel notification);
+    Future<void> markAsRead(String notificationId);
+    Future<void> deleteNotification(String notificationId);
+    Future<int> getUnreadCount(String userId);
+  }
+  ```
+- [ ] Almacenar historial de notificaciones en SQLite
+- [ ] Provider para badge de notificaciones no leídas
+
+### 🎨 JULIO - UI Notificaciones, Sensor y Calificaciones (35 horas)
+
+#### Día 1: Sensor de Luz
+- [ ] Agregar dependencia `light` o `environment_sensors` en pubspec.yaml
+- [ ] Crear LightSensorService:
+  ```dart
+  class LightSensorService {
+    Stream<double> get luxStream;
+    void startListening();
+    void stopListening();
+    // Si lux < 50 → tema oscuro
+    // Si lux > 200 → tema claro
+  }
+  ```
+- [ ] Crear LightSensorNotifier con Riverpod
+- [ ] Integrar con ThemeMode en MyApp:
+  ```dart
+  // themeMode cambia automáticamente según lectura del sensor
+  ```
+- [ ] Opción en Settings para activar/desactivar cambio automático
+
+#### Día 2: Pantalla de Calificaciones
+- [ ] Implementar GradesScreen funcional:
+  - Lista de materias con promedio
+  - Expandir para ver notas individuales
+  - Color según rendimiento (verde > 7, amarillo 5-7, rojo < 5)
+- [ ] Crear AddGradeDialog:
+  - Nombre de la evaluación
+  - Nota obtenida / nota máxima
+  - Peso/porcentaje (opcional)
+  - Fecha de la evaluación
+
+#### Día 3: Pantalla de Estadísticas
+- [ ] Crear StatisticsScreen/Widget para HomeScreen:
+  - Gráfico circular: tareas completadas vs pendientes
+  - Barras de progreso por materia
+  - Promedio general
+  - Tareas vencidas
+- [ ] Usar widgets nativos (Container + CustomPaint) o package de charts
+
+#### Día 4: NotificationsScreen Funcional
+- [ ] Implementar NotificationsScreen con lista real:
+  - Agrupar por fecha (Hoy, Ayer, Esta semana)
+  - Icono según tipo (tarea, recordatorio, sync)
+  - Marcar como leída al tocar
+  - Swipe para eliminar
+- [ ] Badge de notificaciones en AppBar de HomeScreen
+
+#### Día 5: HomeScreen con datos reales
+- [ ] Conectar HomeScreen con providers reales:
+  - Tareas pendientes del provider de tareas
+  - Materias activas del provider de materias
+  - Estadísticas del StatisticsService
+- [ ] Resumen dinámico: "Hoy tienes X tareas pendientes"
+- [ ] Widget de próximas entregas (próximos 7 días)
+
+---
+
+# SPRINT 7: LECTURAS PDF, BÚSQUEDA Y PULIDO (Semana 7)
+
+## 🎯 Objetivos
+- Implementar lector PDF integrado
+- Búsqueda avanzada transversal
+- Pantalla de Settings funcional
+- Pulido general de UI/UX
+- Testing
+
+## 👥 División de Tareas
+
+### 📱 DENISE - Backend Lecturas y Búsqueda (35 horas)
+
+#### Día 1: Lecturas PDF - Data Layer
+- [ ] Crear ReadingLocalDataSource:
+  ```dart
+  abstract class ReadingLocalDataSource {
+    Future<List<ReadingModel>> getReadingsBySubject(String subjectId);
+    Future<void> insertReading(ReadingModel reading);
+    Future<void> updateReading(ReadingModel reading);
+    Future<void> deleteReading(String readingId);
+    Future<void> updateProgress(String readingId, int currentPage);
+  }
+  ```
+- [ ] Implementar ReadingRepositoryImpl
+- [ ] Crear use cases: GetReadings, AddReading, UpdateProgress
+
+#### Día 2: Búsqueda Global
+- [ ] Crear SearchService:
+  ```dart
+  class SearchService {
+    Future<SearchResults> search(String query, {
+      bool searchSubjects = true,
+      bool searchTasks = true,
+      bool searchReadings = true,
+    });
+  }
+
+  class SearchResults {
+    final List<Subject> subjects;
+    final List<Task> tasks;
+    final List<Reading> readings;
+  }
+  ```
+- [ ] Implementar queries SQL con LIKE y FTS (Full Text Search)
+- [ ] Crear provider de búsqueda con debounce
+
+#### Día 3: Settings - Persistencia
+- [ ] Crear SettingsService:
+  ```dart
+  class SettingsService {
+    Future<void> setThemeMode(String mode); // 'system', 'light', 'dark'
+    Future<String> getThemeMode();
+    Future<void> setAutoThemeBySensor(bool enabled);
+    Future<bool> getAutoThemeBySensor();
+    Future<void> setNotificationsEnabled(bool enabled);
+    Future<bool> getNotificationsEnabled();
+    Future<void> setReminderHoursBefore(int hours);
+    Future<int> getReminderHoursBefore();
+    Future<void> setLanguage(String locale);
+    Future<String> getLanguage();
+  }
+  ```
+- [ ] Usar SharedPreferences y tabla `app_settings` en SQLite
+- [ ] Crear SettingsNotifier con Riverpod
+
+#### Día 4-5: Testing
+- [ ] Tests unitarios de repositories:
+  - SubjectRepositoryImpl
+  - TaskRepositoryImpl
+  - AuthRepositoryImpl
+- [ ] Tests unitarios de use cases
+- [ ] Tests de integración de DatabaseHelper
+- [ ] Tests de modelos (toJson, fromJson, fromEntity)
+- [ ] Al menos 20 tests en total
+
+### 🎨 JULIO - UI Lecturas, Búsqueda y Pulido (35 horas)
+
+#### Día 1: Lector PDF
+- [ ] Crear PDFReaderScreen usando `syncfusion_flutter_pdfviewer`:
+  ```dart
+  // lib/presentation/pages/pdf/pdf_reader_screen.dart
+  - Abrir PDF desde archivo local o URL
+  - Navegación por páginas
+  - Zoom
+  - Guardar progreso de lectura
+  ```
+- [ ] Crear ReadingsScreen:
+  - Lista de lecturas agrupadas por materia
+  - Barra de progreso por lectura
+  - Botón para agregar nueva lectura (file_picker)
+
+#### Día 2: Búsqueda Avanzada
+- [ ] Crear SearchScreen:
+  - Barra de búsqueda con debounce (300ms)
+  - Resultados agrupados por categoría (Materias, Tareas, Lecturas)
+  - Filtros rápidos (chips)
+  - Navegación a detalle al tocar resultado
+- [ ] Integrar búsqueda en AppBar global (ícono de lupa)
+
+#### Día 3: Settings Funcional
+- [ ] Implementar SettingsScreen completo:
+  - Toggle tema: Sistema / Claro / Oscuro
+  - Toggle sensor de luz automático
+  - Toggle notificaciones
+  - Horas de anticipación para recordatorios
+  - Información de la cuenta
+  - "Acerca de" con versión de la app
+  - Botón "Cerrar sesión"
+  - Botón "Sincronizar ahora"
+  - Almacenamiento usado (local)
+
+#### Día 4-5: Pulido General
+- [ ] Revisar y mejorar animaciones en:
+  - Transiciones entre pantallas (Hero animations)
+  - Aparición de cards (FadeIn, SlideIn con animate_do)
+  - Loading states con shimmer/skeleton
+- [ ] Lottie animations en SplashScreen
+- [ ] Responsive: verificar en distintos tamaños de pantalla
+- [ ] Accesibilidad: labels, contraste, tamaños mínimos de tap
+- [ ] Manejo de errores visuales (SnackBars, dialogs)
+- [ ] Empty states consistentes en todas las pantallas
+
+---
+
+# SPRINT 8: MANUALES Y PUBLICACIÓN (Semana 8)
+
+## 🎯 Objetivos
+- Crear manuales requeridos (usuario, desarrollo, programación)
+- Implementar manual in-app (HelpScreen)
+- Preparar assets y publicar en Google Play
+- Presentación final
+
+## 👥 División de Tareas
+
+### 📱 DENISE - Manuales Técnicos y Publicación (35 horas)
+
+#### Día 1: Manual de Desarrollo
+- [ ] Crear documento con:
+  - Arquitectura del sistema (Clean Architecture)
+  - Diagrama de capas (data → domain → presentation)
+  - Diagrama entidad-relación de la BD
+  - Stack tecnológico utilizado
+  - Decisiones técnicas y justificación
+  - Estructura de paquetes/carpetas
+  - Flujo de autenticación
+  - Estrategia de sincronización
+
+#### Día 2: Manual de Programación
+- [ ] Crear documento con:
+  - Explicación del código por módulos
+  - Diagramas de clases principales
+  - Diagramas de casos de uso
+  - Patrones de diseño utilizados (Repository, UseCase, Observer)
+  - Guía para agregar nuevas funcionalidades
+  - Convenciones de código
+
+#### Día 3: Política de Privacidad y Legal
+- [ ] Redactar política de privacidad:
+  - Datos recolectados (email, nombre, datos académicos)
+  - Uso de Firebase y Google/Facebook Auth
+  - Almacenamiento de datos
+  - Derechos del usuario
+- [ ] Hospedar en una URL pública (Firebase Hosting o GitHub Pages)
+- [ ] Configurar enlace en Google Play Console
+
+#### Día 4: Preparar Build de Producción
+- [ ] Generar keystore para firma de la app:
+  ```bash
+  keytool -genkey -v -keystore academic-task-manager.jks \
+    -keyalg RSA -keysize 2048 -validity 10000 \
+    -alias academic_task_manager
+  ```
+- [ ] Configurar `key.properties` y `build.gradle` para release
+- [ ] Generar APK/AAB de release:
+  ```bash
+  flutter build appbundle --release
+  ```
+- [ ] Probar app en modo release en dispositivo real
+
+#### Día 5: Publicación Google Play
+- [ ] Crear ficha en Google Play Console:
+  - Título, descripción corta y larga
+  - Categoría: Educación
+  - Clasificación de contenido
+- [ ] Subir capturas de pantalla (al menos 4)
+- [ ] Subir APK/AAB
+- [ ] Enviar a revisión (Producción o Beta cerrada)
+
+### 🎨 JULIO - Manual de Usuario e In-App (35 horas)
+
+#### Día 1-2: Manual de Usuario (PDF)
+- [ ] Crear documento con:
+  - Instalación y primer inicio
+  - Registro e inicio de sesión
+  - Gestión de materias (crear, editar, archivar, eliminar)
+  - Gestión de tareas (crear, editar, completar, eliminar)
+  - Adjuntar archivos y fotos
+  - Calendario académico
+  - Calificaciones y estadísticas
+  - Lecturas PDF
+  - Notificaciones y recordatorios
+  - Configuración de la app
+  - Sincronización y uso offline
+  - Capturas de pantalla de cada funcionalidad
+
+#### Día 3: Manual In-App (HelpScreen)
+- [ ] Implementar HelpScreen completo:
+  - Secciones expandibles (ExpansionTile)
+  - Tutorial paso a paso con capturas
+  - FAQ (Preguntas frecuentes)
+  - Enlace a soporte / contacto
+  - Primera vez: mostrar tutorial guiado (tooltips o overlay)
+- [ ] Crear OnboardingTutorial para nuevos usuarios:
+  ```dart
+  // ShowcaseWidget o Tooltip personalizado
+  // Paso 1: "Aquí puedes ver tus materias"
+  // Paso 2: "Toca + para crear una tarea"
+  // Paso 3: "Desliza para ver el calendario"
+  ```
+
+#### Día 4: Assets de Google Play
+- [ ] Crear ícono de la app (512x512):
+  - Versión adaptativa para Android
+- [ ] Crear Feature Graphic (1024x500)
+- [ ] Tomar capturas de pantalla en diferentes pantallas:
+  - HomeScreen
+  - Materias
+  - Tareas
+  - Calendario
+  - Calificaciones
+  - Modo oscuro
+- [ ] Redactar descripción atractiva para la tienda
+
+#### Día 5: Presentación Final
+- [ ] Preparar presentación con:
+  - Demo en vivo de la app
+  - Arquitectura y decisiones técnicas
+  - Funcionalidades principales
+  - Modo offline y sincronización
+  - Sensor de luz
+  - Estadísticas
+  - Lecciones aprendidas
+- [ ] Ensayo de presentación
 
 ---
 
