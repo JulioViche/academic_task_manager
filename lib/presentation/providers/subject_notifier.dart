@@ -43,11 +43,14 @@ class SubjectNotifier extends StateNotifier<SubjectState> {
   Future<void> loadSubjects(String userId) async {
     _currentUserId = userId;
     state = state.copyWith(isLoading: true, errorMessage: null);
+    print('SubjectNotifier: Loading subjects for user $userId');
 
     try {
       final subjects = await repository.getSubjects(userId);
+      print('SubjectNotifier: Loaded ${subjects.length} subjects');
       state = state.copyWith(subjects: subjects, isLoading: false);
     } catch (e) {
+      print('SubjectNotifier: Error loading subjects: $e');
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to load subjects: ${e.toString()}',

@@ -18,7 +18,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSubjects();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSubjects();
+    });
   }
 
   void _loadSubjects() {
@@ -32,6 +34,13 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen to auth changes to reload data if user changes or logs in
+    ref.listen(authNotifierProvider, (previous, next) {
+      if (previous?.user?.userId != next.user?.userId && next.user != null) {
+        _loadSubjects();
+      }
+    });
+
     final subjectState = ref.watch(subjectNotifierProvider);
 
     return Scaffold(

@@ -24,7 +24,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   @override
@@ -45,6 +47,13 @@ class _TasksScreenState extends ConsumerState<TasksScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Listen to auth changes
+    ref.listen(authNotifierProvider, (previous, next) {
+      if (previous?.user?.userId != next.user?.userId && next.user != null) {
+        _loadData();
+      }
+    });
+
     final taskState = ref.watch(taskNotifierProvider);
 
     return Scaffold(
