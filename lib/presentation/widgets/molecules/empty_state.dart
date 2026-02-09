@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class EmptyState extends StatelessWidget {
   final String message;
+  final String? subMessage;
   final IconData icon;
   final String? buttonText;
   final VoidCallback? onButtonPressed;
@@ -9,6 +10,7 @@ class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
     required this.message,
+    this.subMessage,
     this.icon = Icons.inbox,
     this.buttonText,
     this.onButtonPressed,
@@ -31,6 +33,16 @@ class EmptyState extends StatelessWidget {
                 context,
               ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
             ),
+            if (subMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                subMessage!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
             if (buttonText != null && onButtonPressed != null) ...[
               const SizedBox(height: 24),
               ElevatedButton(

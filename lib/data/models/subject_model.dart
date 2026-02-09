@@ -19,6 +19,7 @@ class SubjectModel extends Subject {
   });
 
   factory SubjectModel.fromJson(Map<String, dynamic> json) {
+    // Usa 'color' de la BD para colorHex, y 'professor_name' para teacherName
     return SubjectModel(
       id: json['subject_id'],
       userId: json['user_id'],
@@ -32,27 +33,28 @@ class SubjectModel extends Subject {
       isArchived: json['is_archived'] == 1,
       syncStatus: json['sync_status'] ?? 'synced',
       serverId: json['server_id'],
-      colorHex: json['color_hex'] ?? '#2196F3',
-      teacherName: json['teacher_name'] ?? '',
+      // Mapear campos de BD a propiedades de la entidad
+      colorHex: json['color'] ?? '#2196F3',
+      teacherName: json['professor_name'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
+    // Solo guardar campos que existen en la BD
+    // Usar colorHex -> color y teacherName -> professor_name
     return {
       'subject_id': id,
       'user_id': userId,
       'subject_name': name,
       'subject_code': code,
       'description': description,
-      'color': color,
+      'color': colorHex, // Guardar colorHex en el campo 'color' de la BD
       'semester': semester,
-      'professor_name': professorName,
+      'professor_name': teacherName.isNotEmpty ? teacherName : professorName, // Usar teacherName si está presente
       'schedule': schedule,
       'is_archived': isArchived ? 1 : 0,
       'sync_status': syncStatus,
       'server_id': serverId,
-      'color_hex': colorHex,
-      'teacher_name': teacherName,
     };
   }
 

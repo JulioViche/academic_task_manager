@@ -1,18 +1,7 @@
 import 'package:flutter/material.dart';
 
-class SubjectsScreen extends StatelessWidget {
-  const SubjectsScreen({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('Subjects Screen')));
-}
-
-class TasksScreen extends StatelessWidget {
-  const TasksScreen({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('Tasks Screen')));
-}
+// Note: SubjectsScreen and TasksScreen have been moved to their own files
+// as full implementations.
 
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({super.key});

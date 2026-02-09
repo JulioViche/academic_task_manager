@@ -5,6 +5,8 @@ import '../../presentation/pages/home_screen.dart';
 import '../../presentation/pages/login_screen.dart';
 import '../../presentation/pages/onboarding_screen.dart';
 import '../../presentation/pages/placeholder_screens.dart';
+import '../../presentation/pages/subjects_screen.dart';
+import '../../presentation/pages/tasks_screen.dart';
 import '../../presentation/pages/auth/register_screen.dart';
 import '../../presentation/pages/auth/forgot_password_screen.dart';
 import '../../presentation/pages/profile/profile_screen.dart';

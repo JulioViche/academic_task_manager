@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="facebook_app_id">YOUR_FACEBOOK_APP_ID</string>
-    <string name="facebook_client_token">YOUR_FACEBOOK_CLIENT_TOKEN</string>
-    <string name="fb_login_protocol_scheme">fbYOUR_FACEBOOK_APP_ID</string>
+    <string name="app_name">Academic Task Manager</string>
+    <string name="facebook_app_id">902319565628868</string>
+    <string name="facebook_client_token">0951222fef4b109cd18fbef9f18cd52a</string>
+    <string name="fb_login_protocol_scheme">fb902319565628868</string>
 </resources>
