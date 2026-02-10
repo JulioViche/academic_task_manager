@@ -10,6 +10,7 @@ import 'core/theme/app_theme.dart';
 import 'data/datasources/local/database_helper.dart';
 import 'presentation/providers/auth_notifier.dart';
 import 'presentation/providers/sync_provider.dart';
+import 'core/theme/theme_notifier.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +60,9 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch theme provider for changes
+    final themeMode = ref.watch(themeProvider);
+
     return ScreenUtilInit(
       designSize: const Size(360, 690),
       minTextAdapt: true,
@@ -68,7 +72,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           title: 'Academic Task Manager',
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeMode.system,
+          themeMode: themeMode,
           routerConfig: AppRouter.router,
           debugShowCheckedModeBanner: false,
         );
@@ -76,4 +80,3 @@ class _MyAppState extends ConsumerState<MyApp> {
     );
   }
 }
-

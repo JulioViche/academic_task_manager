@@ -14,6 +14,7 @@ import '../../presentation/pages/profile/profile_screen.dart';
 import '../../presentation/pages/profile/edit_profile_screen.dart';
 import '../../presentation/pages/profile/notifications_screen.dart';
 import '../../presentation/pages/profile/help_screen.dart';
+import '../../presentation/pages/settings_screen.dart';
 import '../../presentation/widgets/organisms/navigation_shell.dart';
 import '../../presentation/pages/sync/sync_history_screen.dart';
 
