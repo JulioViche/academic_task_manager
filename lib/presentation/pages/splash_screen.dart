@@ -21,6 +21,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // Give a minimum splash duration for branding/User experience
     await Future.delayed(const Duration(seconds: 2));
 
+    if (!mounted) return;
+
+    // Check if onboarding has been seen
+    final prefs = ref.read(sharedPreferencesProvider);
+    final seenOnboarding = prefs.getBool('seenOnboarding') ?? false;
+
+    if (!seenOnboarding) {
+      context.go('/onboarding');
+      return;
+    }
+
     // Check authentication status
     await ref.read(authNotifierProvider.notifier).checkAuthStatus();
 

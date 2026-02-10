@@ -8,6 +8,8 @@ import '../providers/subject_notifier.dart';
 import '../providers/auth_notifier.dart';
 import '../widgets/molecules/empty_state.dart';
 import 'tasks/task_detail_screen.dart';
+import 'package:showcaseview/showcaseview.dart';
+import '../providers/tutorial_provider.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
@@ -19,6 +21,7 @@ class TasksScreen extends ConsumerStatefulWidget {
 class _TasksScreenState extends ConsumerState<TasksScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final GlobalKey _addTaskKey = GlobalKey();
 
   @override
   void initState() {
@@ -26,7 +29,16 @@ class _TasksScreenState extends ConsumerState<TasksScreen>
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
+      _checkTutorial();
     });
+  }
+
+  void _checkTutorial() {
+    final tutorialState = ref.read(tutorialNotifierProvider);
+    if (!tutorialState.hasSeenTasksTutorial) {
+      ShowCaseWidget.of(context).startShowCase([_addTaskKey]);
+      ref.read(tutorialNotifierProvider.notifier).completeTasksTutorial();
+    }
   }
 
   @override
@@ -79,9 +91,14 @@ class _TasksScreenState extends ConsumerState<TasksScreen>
           _buildTaskList(taskState.overdueTasks, taskState.isLoading),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddTaskDialog(),
-        child: const Icon(Icons.add),
+      floatingActionButton: Showcase(
+        key: _addTaskKey,
+        title: 'Agregar Tarea',
+        description: 'Crea nuevas tareas y asígnales una materia, prioridad y fecha.',
+        child: FloatingActionButton(
+          onPressed: () => _showAddTaskDialog(),
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }

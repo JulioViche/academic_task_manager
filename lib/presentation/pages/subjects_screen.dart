@@ -6,6 +6,8 @@ import '../../domain/entities/subject_entity.dart';
 import '../providers/subject_notifier.dart';
 import '../providers/auth_notifier.dart';
 import '../widgets/molecules/empty_state.dart';
+import 'package:showcaseview/showcaseview.dart';
+import '../providers/tutorial_provider.dart';
 
 class SubjectsScreen extends ConsumerStatefulWidget {
   const SubjectsScreen({super.key});
@@ -15,12 +17,23 @@ class SubjectsScreen extends ConsumerStatefulWidget {
 }
 
 class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
+  final GlobalKey _addSubjectKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadSubjects();
+      _checkTutorial();
     });
+  }
+
+  void _checkTutorial() {
+    final tutorialState = ref.read(tutorialNotifierProvider);
+    if (!tutorialState.hasSeenSubjectTutorial) {
+      ShowCaseWidget.of(context).startShowCase([_addSubjectKey]);
+      ref.read(tutorialNotifierProvider.notifier).completeSubjectTutorial();
+    }
   }
 
   void _loadSubjects() {
@@ -51,9 +64,14 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
         ],
       ),
       body: _buildBody(context, subjectState),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSubjectDialog(context),
-        child: const Icon(Icons.add),
+      floatingActionButton: Showcase(
+        key: _addSubjectKey,
+        title: 'Agregar Materia',
+        description: 'Toca aquí para crear tu primera materia y empezar a organizar tus tareas.',
+        child: FloatingActionButton(
+          onPressed: () => _showAddSubjectDialog(context),
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
