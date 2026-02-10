@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/subject_notifier.dart';
 
-/// Screen showing sync history and a "Sync Now" button
+/// Screen showing sync history and a "Sync Now" button with confirmation
 class SyncHistoryScreen extends ConsumerStatefulWidget {
   const SyncHistoryScreen({super.key});
 
@@ -28,14 +28,12 @@ class _SyncHistoryScreenState extends ConsumerState<SyncHistoryScreen> {
     try {
       final db = await ref.read(databaseHelperProvider).database;
 
-      // Get sync history
       final history = await db.query(
         'sync_history',
         orderBy: 'started_at DESC',
         limit: 50,
       );
 
-      // Get pending count
       final pending = await ref.read(syncServiceProvider).getPendingCount();
 
       setState(() {
@@ -51,6 +49,7 @@ class _SyncHistoryScreenState extends ConsumerState<SyncHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncNotifierProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -84,7 +83,7 @@ class _SyncHistoryScreenState extends ConsumerState<SyncHistoryScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             child: ElevatedButton.icon(
-              onPressed: syncState.isSyncing ? null : _syncNow,
+              onPressed: syncState.isSyncing ? null : _confirmAndSync,
               icon: syncState.isSyncing
                   ? const SizedBox(
                       width: 20,
@@ -104,11 +103,28 @@ class _SyncHistoryScreenState extends ConsumerState<SyncHistoryScreen> {
           if (syncState.lastSyncTime != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Última sincronización: ${DateFormat('dd/MM/yyyy HH:mm').format(syncState.lastSyncTime!)}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, size: 14, color: Colors.green.shade400),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Última: ${DateFormat('dd/MM/yyyy HH:mm').format(syncState.lastSyncTime!)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                  if (syncState.uploadedCount > 0 || syncState.downloadedCount > 0) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      '↑${syncState.uploadedCount} ↓${syncState.downloadedCount}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
 
@@ -150,10 +166,12 @@ class _SyncHistoryScreenState extends ConsumerState<SyncHistoryScreen> {
     final status = entry['status'] as String? ?? 'unknown';
     final entityType = entry['entity_type'] as String? ?? '';
     final operation = entry['operation'] as String? ?? '';
+    final syncType = entry['sync_type'] as String? ?? 'upload';
     final startedAt = entry['started_at'] as int?;
     final error = entry['error_message'] as String?;
 
     final (icon, color) = _statusIcon(status);
+    final directionIcon = syncType == 'download' ? '↓' : '↑';
     final dateStr = startedAt != null
         ? DateFormat('dd/MM HH:mm').format(
             DateTime.fromMillisecondsSinceEpoch(startedAt),
@@ -162,7 +180,7 @@ class _SyncHistoryScreenState extends ConsumerState<SyncHistoryScreen> {
 
     return ListTile(
       leading: Icon(icon, color: color),
-      title: Text('${_operationLabel(operation)} ${_entityLabel(entityType)}'),
+      title: Text('$directionIcon ${_operationLabel(operation)} ${_entityLabel(entityType)}'),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -181,14 +199,54 @@ class _SyncHistoryScreenState extends ConsumerState<SyncHistoryScreen> {
     );
   }
 
-  Future<void> _syncNow() async {
-    await ref.read(syncNotifierProvider.notifier).syncNow();
+  /// Show confirmation dialog then sync
+  Future<void> _confirmAndSync() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.sync, size: 40),
+        title: const Text('¿Sincronizar datos?'),
+        content: const Text(
+          'Se subirán los cambios locales al servidor y se descargarán '
+          'los datos nuevos o actualizados.\n\n'
+          'Esto puede tomar unos segundos dependiendo de tu conexión.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.sync, size: 18),
+            label: const Text('Sincronizar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final result = await ref.read(syncNotifierProvider.notifier).syncNow();
     await _loadData();
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sincronización completada'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  '↑${result.uploaded} subidos, ↓${result.downloaded} descargados',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green.shade700,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -217,6 +275,8 @@ class _SyncHistoryScreenState extends ConsumerState<SyncHistoryScreen> {
         return 'Actualizar';
       case 'delete':
         return 'Eliminar';
+      case 'download':
+        return 'Descargar';
       default:
         return op;
     }
@@ -230,6 +290,8 @@ class _SyncHistoryScreenState extends ConsumerState<SyncHistoryScreen> {
         return 'tarea';
       case 'attachments':
         return 'adjunto';
+      case 'grades':
+        return 'calificación';
       default:
         return entity;
     }

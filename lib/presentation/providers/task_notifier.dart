@@ -4,9 +4,11 @@ import '../../data/repositories/task_repository_impl.dart';
 import '../../data/datasources/local/task_local_data_source.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/network/network_info.dart';
+import '../../core/services/notification_service.dart';
 import '../../data/datasources/remote/task_remote_data_source.dart';
 import 'subject_notifier.dart';
 import 'sync_provider.dart';
+import 'sprint6_providers.dart';
 
 /// State for tasks
 class TaskState {
@@ -44,22 +46,21 @@ class TaskState {
 /// Task state notifier
 class TaskNotifier extends StateNotifier<TaskState> {
   final TaskRepositoryImpl repository;
+  final NotificationService notificationService;
   String? _currentUserId;
 
-  TaskNotifier(this.repository) : super(const TaskState());
+  TaskNotifier(this.repository, this.notificationService)
+      : super(const TaskState());
 
   /// Load all tasks for a user
   Future<void> loadTasks(String userId) async {
     _currentUserId = userId;
     state = state.copyWith(isLoading: true, errorMessage: null);
-    print('TaskNotifier: Loading tasks for user $userId');
 
     try {
       final tasks = await repository.getTasks(userId);
       final pendingTasks = await repository.getPendingTasks(userId);
       final overdueTasks = await repository.getOverdueTasks(userId);
-
-      print('TaskNotifier: Loaded ${tasks.length} tasks');
 
       state = state.copyWith(
         tasks: tasks,
@@ -68,7 +69,6 @@ class TaskNotifier extends StateNotifier<TaskState> {
         isLoading: false,
       );
     } catch (e) {
-      print('TaskNotifier: Error loading tasks: $e');
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to load tasks: ${e.toString()}',
@@ -88,10 +88,20 @@ class TaskNotifier extends StateNotifier<TaskState> {
     }
   }
 
-  /// Add a new task
+  /// Add a new task and schedule notifications if it has a due date
   Future<bool> addTask(Task task) async {
     try {
       await repository.addTask(task);
+
+      // Schedule notification reminders if task has a due date
+      if (task.dueDate != null && task.dueDate!.isAfter(DateTime.now())) {
+        await notificationService.scheduleTaskReminders(
+          taskId: task.id,
+          taskTitle: task.title,
+          dueDate: task.dueDate!,
+        );
+      }
+
       if (_currentUserId != null) {
         await loadTasks(_currentUserId!);
       }
@@ -104,10 +114,23 @@ class TaskNotifier extends StateNotifier<TaskState> {
     }
   }
 
-  /// Update a task
+  /// Update a task and reschedule notifications
   Future<bool> updateTask(Task task) async {
     try {
       await repository.updateTask(task);
+
+      // Cancel old reminders and reschedule if due date exists
+      await notificationService.cancelTaskReminders(task.id);
+      if (task.dueDate != null &&
+          task.dueDate!.isAfter(DateTime.now()) &&
+          task.status != 'completed') {
+        await notificationService.scheduleTaskReminders(
+          taskId: task.id,
+          taskTitle: task.title,
+          dueDate: task.dueDate!,
+        );
+      }
+
       if (_currentUserId != null) {
         await loadTasks(_currentUserId!);
       }
@@ -120,10 +143,13 @@ class TaskNotifier extends StateNotifier<TaskState> {
     }
   }
 
-  /// Delete a task
+  /// Delete a task and cancel its notifications
   Future<bool> deleteTask(String taskId) async {
     try {
+      // Cancel reminders before deleting
+      await notificationService.cancelTaskReminders(taskId);
       await repository.deleteTask(taskId);
+
       if (_currentUserId != null) {
         await loadTasks(_currentUserId!);
       }
@@ -136,10 +162,12 @@ class TaskNotifier extends StateNotifier<TaskState> {
     }
   }
 
-  /// Mark a task as completed
+  /// Mark a task as completed and cancel its notifications
   Future<bool> completeTask(String taskId) async {
     try {
+      await notificationService.cancelTaskReminders(taskId);
       await repository.markTaskAsCompleted(taskId);
+
       if (_currentUserId != null) {
         await loadTasks(_currentUserId!);
       }
@@ -181,5 +209,8 @@ final taskRepositoryProvider = Provider<TaskRepositoryImpl>((ref) {
 final taskNotifierProvider = StateNotifierProvider<TaskNotifier, TaskState>((
   ref,
 ) {
-  return TaskNotifier(ref.watch(taskRepositoryProvider));
+  return TaskNotifier(
+    ref.watch(taskRepositoryProvider),
+    ref.watch(notificationServiceProvider),
+  );
 });

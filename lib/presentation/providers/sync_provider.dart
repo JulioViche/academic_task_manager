@@ -38,16 +38,20 @@ final connectivityListenerProvider = Provider<ConnectivityListener>((ref) {
 
 // ─── State Providers ─────────────────────────────────────────
 
-/// State for sync status
+/// State for sync status with upload/download counts
 class SyncState {
   final bool isSyncing;
   final int pendingCount;
+  final int uploadedCount;
+  final int downloadedCount;
   final String? lastError;
   final DateTime? lastSyncTime;
 
   const SyncState({
     this.isSyncing = false,
     this.pendingCount = 0,
+    this.uploadedCount = 0,
+    this.downloadedCount = 0,
     this.lastError,
     this.lastSyncTime,
   });
@@ -55,12 +59,16 @@ class SyncState {
   SyncState copyWith({
     bool? isSyncing,
     int? pendingCount,
+    int? uploadedCount,
+    int? downloadedCount,
     String? lastError,
     DateTime? lastSyncTime,
   }) {
     return SyncState(
       isSyncing: isSyncing ?? this.isSyncing,
       pendingCount: pendingCount ?? this.pendingCount,
+      uploadedCount: uploadedCount ?? this.uploadedCount,
+      downloadedCount: downloadedCount ?? this.downloadedCount,
       lastError: lastError,
       lastSyncTime: lastSyncTime ?? this.lastSyncTime,
     );
@@ -73,25 +81,28 @@ class SyncNotifier extends StateNotifier<SyncState> {
 
   SyncNotifier(this.syncService) : super(const SyncState());
 
-  /// Trigger a manual sync
-  Future<void> syncNow() async {
+  /// Trigger a full bidirectional sync
+  Future<SyncResult> syncNow() async {
     state = state.copyWith(isSyncing: true, lastError: null);
 
     try {
-      await syncService.processQueue();
-      await syncService.syncPendingRecords();
+      final result = await syncService.fullSync();
       final pendingCount = await syncService.getPendingCount();
 
       state = state.copyWith(
         isSyncing: false,
         pendingCount: pendingCount,
+        uploadedCount: result.uploaded,
+        downloadedCount: result.downloaded,
         lastSyncTime: DateTime.now(),
       );
+      return result;
     } catch (e) {
       state = state.copyWith(
         isSyncing: false,
         lastError: e.toString(),
       );
+      return const SyncResult();
     }
   }
 

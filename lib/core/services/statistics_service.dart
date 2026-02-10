@@ -28,8 +28,8 @@ class StatisticsService {
   Future<int> getCompletedTasksCount(String userId) async {
     final db = await databaseHelper.database;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_completed = 1',
-      [userId],
+      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status = ?',
+      [userId, 'completed'],
     );
     return (result.first['count'] as int?) ?? 0;
   }
@@ -38,8 +38,8 @@ class StatisticsService {
   Future<int> getPendingTasksCount(String userId) async {
     final db = await databaseHelper.database;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_completed = 0',
-      [userId],
+      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status != ?',
+      [userId, 'completed'],
     );
     return (result.first['count'] as int?) ?? 0;
   }
@@ -49,8 +49,8 @@ class StatisticsService {
     final db = await databaseHelper.database;
     final now = DateTime.now().millisecondsSinceEpoch;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_completed = 0 AND due_date < ?',
-      [userId, now],
+      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status != ? AND due_date < ?',
+      [userId, 'completed', now],
     );
     return (result.first['count'] as int?) ?? 0;
   }
@@ -63,8 +63,8 @@ class StatisticsService {
       [userId],
     );
     final completed = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_completed = 1',
-      [userId],
+      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status = ?',
+      [userId, 'completed'],
     );
     final t = (total.first['count'] as int?) ?? 0;
     final c = (completed.first['count'] as int?) ?? 0;
@@ -96,8 +96,8 @@ class StatisticsService {
     final now = DateTime.now().millisecondsSinceEpoch;
     final weekLater = DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_completed = 0 AND due_date >= ? AND due_date <= ?',
-      [userId, now, weekLater],
+      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status != ? AND due_date >= ? AND due_date <= ?',
+      [userId, 'completed', now, weekLater],
     );
     return (result.first['count'] as int?) ?? 0;
   }
