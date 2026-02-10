@@ -246,7 +246,7 @@ class AppDatabaseSchema {
   ''';
 
   static const String createSyncQueueTable = '''
-    CREATE TABLE sync_queue (
+    CREATE TABLE IF NOT EXISTS sync_queue (
         id TEXT PRIMARY KEY,
         table_name TEXT NOT NULL,
         record_id TEXT NOT NULL,
@@ -262,7 +262,7 @@ class AppDatabaseSchema {
   ''';
 
   static const String createImageCacheTable = '''
-    CREATE TABLE image_cache (
+    CREATE TABLE IF NOT EXISTS image_cache (
         cache_id TEXT PRIMARY KEY,
         url TEXT NOT NULL UNIQUE,
         local_path TEXT NOT NULL,
