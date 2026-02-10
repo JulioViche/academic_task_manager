@@ -21,6 +21,7 @@ import '../../presentation/pages/sync/sync_history_screen.dart';
 import '../../presentation/pages/pdf/readings_screen.dart';
 import '../../presentation/pages/pdf/pdf_reader_screen.dart';
 import '../../presentation/pages/subjects/subject_detail_screen.dart';
+import '../../presentation/pages/privacy_policy_screen.dart';
 import '../../domain/entities/reading_entity.dart';
 
 // Private navigators
@@ -127,6 +128,11 @@ class AppRouter {
           final id = state.pathParameters['id']!;
           return SubjectDetailScreen(subjectId: id);
         },
+      ),
+      GoRoute(
+        path: '/privacy-policy',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const PrivacyPolicyScreen(),
       ),
     ],
   );

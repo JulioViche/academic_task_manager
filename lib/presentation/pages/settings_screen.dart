@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/theme_notifier.dart';
 
 import '../providers/auth_notifier.dart';
@@ -134,9 +133,9 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.privacy_tip_outlined),
             title: const Text('Política de Privacidad'),
-            trailing: const Icon(Icons.open_in_new, size: 16),
+            trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              launchUrl(Uri.parse('https://example.com/privacy'));
+              context.push('/privacy-policy');
             },
           ),
 
