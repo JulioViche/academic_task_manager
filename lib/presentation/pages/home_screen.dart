@@ -234,31 +234,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 '0xFF${subject.colorHex.replaceAll('#', '')}',
                               ),
                             );
-                            return Container(
-                              width: 140,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: color.withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.book, color: color, size: 24),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    subject.name,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                            return InkWell(
+                              onTap: () =>
+                                  context.push('/subjects/${subject.id}'),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: 140,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: color.withValues(alpha: 0.3),
                                   ),
-                                ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.book, color: color, size: 24),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      subject.name,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -320,12 +326,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
         ],
-      ),
-
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/tasks'),
-        label: const Text('Nueva Tarea'),
-        icon: const Icon(Icons.add),
       ),
     );
   }

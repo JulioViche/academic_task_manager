@@ -20,6 +20,7 @@ import '../../presentation/widgets/organisms/navigation_shell.dart';
 import '../../presentation/pages/sync/sync_history_screen.dart';
 import '../../presentation/pages/pdf/readings_screen.dart';
 import '../../presentation/pages/pdf/pdf_reader_screen.dart';
+import '../../presentation/pages/subjects/subject_detail_screen.dart';
 import '../../domain/entities/reading_entity.dart';
 
 // Private navigators
@@ -117,6 +118,14 @@ class AppRouter {
         builder: (context, state) {
           final reading = state.extra as Reading;
           return PDFReaderScreen(reading: reading);
+        },
+      ),
+      GoRoute(
+        path: '/subjects/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return SubjectDetailScreen(subjectId: id);
         },
       ),
     ],
