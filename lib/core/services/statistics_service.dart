@@ -31,8 +31,8 @@ class StatisticsService {
   Future<int> getCompletedTasksCount(String userId) async {
     final db = await databaseHelper.database;
     final result = await db.rawQuery(
-      "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status = 'completed'",
-      [userId],
+      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status = ?',
+      [userId, 'completed'],
     );
     return (result.first['count'] as int?) ?? 0;
   }
@@ -68,8 +68,8 @@ class StatisticsService {
       [userId],
     );
     final completed = await db.rawQuery(
-      "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status = 'completed'",
-      [userId],
+      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status = ?',
+      [userId, 'completed'],
     );
     final t = (total.first['count'] as int?) ?? 0;
     final c = (completed.first['count'] as int?) ?? 0;

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:showcaseview/showcaseview.dart';
 import '../../providers/task_notifier.dart';
+import '../../providers/tutorial_provider.dart';
 import '../../../domain/entities/task_entity.dart';
 import '../tasks/task_detail_screen.dart';
 
@@ -15,6 +17,24 @@ class CalendarScreen extends ConsumerStatefulWidget {
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
+  final GlobalKey _calendarKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkTutorial();
+    });
+  }
+
+  void _checkTutorial() {
+    final tutorialState = ref.read(tutorialNotifierProvider);
+    if (!tutorialState.hasSeenCalendarTutorial) {
+      // ignore: deprecated_member_use
+      ShowCaseWidget.of(context).startShowCase([_calendarKey]);
+      ref.read(tutorialNotifierProvider.notifier).completeCalendarTutorial();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,32 +56,44 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: () {
-              setState(() {
-                _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1);
-              });
-            },
-          ),
-          Text(
-            DateFormat.yMMMM('es').format(_focusedDay).toUpperCase(),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () {
-              setState(() {
-                _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1);
-              });
-            },
-          ),
-        ],
+    return Showcase(
+      key: _calendarKey,
+      title: 'Calendario',
+      description:
+          'Visualiza tus tareas por día. Los puntos indican entregas pendientes.',
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              onPressed: () {
+                setState(() {
+                  _focusedDay = DateTime(
+                    _focusedDay.year,
+                    _focusedDay.month - 1,
+                  );
+                });
+              },
+            ),
+            Text(
+              DateFormat.yMMMM('es').format(_focusedDay).toUpperCase(),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              onPressed: () {
+                setState(() {
+                  _focusedDay = DateTime(
+                    _focusedDay.year,
+                    _focusedDay.month + 1,
+                  );
+                });
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

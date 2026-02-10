@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "878034188842-k1jpjgcgh891kfqbom20hima12c0c083.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.twodevlab.academic_task_manager",
+            "certificate_hash": "dc5ae87a33a202b33fef564bb3497b8986fe66e3"
+          }
+        },
+        {
           "client_id": "878034188842-srqgtsndcbpfjvetiffbnvksub1sdcg4.apps.googleusercontent.com",
           "client_type": 3
         }

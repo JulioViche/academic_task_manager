@@ -10,6 +10,8 @@ import '../providers/task_notifier.dart';
 import '../providers/sprint6_providers.dart';
 import '../../domain/entities/task_entity.dart';
 import '../widgets/search_delegate.dart';
+import 'package:showcaseview/showcaseview.dart';
+import '../providers/tutorial_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +21,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final GlobalKey _summaryKey = GlobalKey();
+  final GlobalKey _recentTaskKey = GlobalKey();
+
   int _pendingCount = 0;
   int _completedCount = 0;
   double _completionRate = 0.0;
@@ -27,7 +32,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+      _checkTutorial();
+    });
+  }
+
+  void _checkTutorial() {
+    final tutorialState = ref.read(tutorialNotifierProvider);
+    if (!tutorialState.hasSeenHomeTutorial) {
+      // ignore: deprecated_member_use
+      ShowCaseWidget.of(context).startShowCase([_summaryKey, _recentTaskKey]);
+      ref.read(tutorialNotifierProvider.notifier).completeHomeTutorial();
+    }
   }
 
   Future<void> _loadData() async {
@@ -155,15 +172,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     // ── Overview Cards ──
                     _buildSectionHeader(context, 'Resumen'),
                     const SizedBox(height: 12),
-                    _buildOverviewCards(context),
+                    Showcase(
+                      key: _summaryKey,
+                      title: 'Resumen Académico',
+                      description:
+                          'Aquí verás un resumen rápido de tus pendientes y progreso.',
+                      child: _buildOverviewCards(context),
+                    ),
                     const SizedBox(height: 24),
 
                     // ── Upcoming Tasks ──
-                    _buildSectionHeader(
-                      context,
-                      'Próximas entregas',
-                      action: 'Ver todas',
-                      onAction: () => context.go('/tasks'),
+                    Showcase(
+                      key: _recentTaskKey,
+                      title: 'Tareas Recientes',
+                      description: 'Tus próximas tareas aparecerán aquí.',
+                      child: _buildSectionHeader(
+                        context,
+                        'Próximas entregas',
+                        action: 'Ver todas',
+                        onAction: () => context.go('/tasks'),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     if (upcomingTasks.isEmpty)

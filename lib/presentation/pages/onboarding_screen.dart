@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/atoms/custom_button.dart';
+import '../providers/auth_notifier.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
@@ -79,9 +81,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     text: _currentPage == _pages.length - 1
                         ? 'Get Started'
                         : 'Next',
-                    onPressed: () {
+                    onPressed: () async {
                       if (_currentPage == _pages.length - 1) {
-                        context.go('/login');
+                        final prefs = ref.read(sharedPreferencesProvider);
+                        await prefs.setBool('seenOnboarding', true);
+                        if (context.mounted) context.go('/login');
                       } else {
                         _pageController.nextPage(
                           duration: const Duration(milliseconds: 300),
