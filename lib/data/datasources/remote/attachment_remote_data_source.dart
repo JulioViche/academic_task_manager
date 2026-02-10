@@ -93,9 +93,9 @@ class AttachmentRemoteDataSourceImpl implements AttachmentRemoteDataSource {
       Query query = firebaseFirestore.collection('attachments');
 
       if (taskId != null) {
-        query = query.where('taskId', isEqualTo: taskId);
+        query = query.where('task_id', isEqualTo: taskId);
       } else if (subjectId != null) {
-        query = query.where('subjectId', isEqualTo: subjectId);
+        query = query.where('subject_id', isEqualTo: subjectId);
       } else {
         // If neither taskId nor subjectId is provided, return an empty list
         // or throw an error depending on desired behavior.

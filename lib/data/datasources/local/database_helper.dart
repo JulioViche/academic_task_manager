@@ -10,7 +10,7 @@ class DatabaseHelper {
   static Database? _database;
 
   // Increment this when schema changes
-  static const int _dbVersion = 2;
+  static const int _dbVersion = 3;
 
   factory DatabaseHelper() => _instance;
 
@@ -83,6 +83,59 @@ class DatabaseHelper {
         'CREATE INDEX IF NOT EXISTS idx_sync_queue_table ON sync_queue(table_name)',
       );
       log('DatabaseHelper: Migration to v2 completed (sync_queue table added)');
+    }
+
+    if (oldVersion < 3) {
+      // v3: Add cloud_url and server_id to attachments if missing
+      // We use try-catch block for each column to avoid error if it already exists (unlikely but safe)
+      // SQLite doesn't support IF NOT EXISTS for ADD COLUMN in standard syntax universally but usually safe to run.
+      // Better approach: check prune, but for simplicity we assume missing.
+      try {
+        await db.execute('ALTER TABLE attachments ADD COLUMN cloud_url TEXT');
+      } catch (e) {
+        log('DatabaseHelper: cloud_url might already exist: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE attachments ADD COLUMN server_id TEXT');
+      } catch (e) {
+        log('DatabaseHelper: server_id might already exist: $e');
+      }
+      try {
+        await db.execute(
+          'ALTER TABLE attachments ADD COLUMN upload_progress INTEGER DEFAULT 0',
+        );
+      } catch (e) {
+        log('DatabaseHelper: upload_progress might already exist: $e');
+      }
+      try {
+        await db.execute(
+          "ALTER TABLE attachments ADD COLUMN sync_status TEXT DEFAULT 'synced'",
+        );
+      } catch (e) {
+        log('DatabaseHelper: sync_status might already exist: $e');
+      }
+      try {
+        await db.execute(
+          'ALTER TABLE attachments ADD COLUMN last_sync INTEGER',
+        );
+      } catch (e) {
+        log('DatabaseHelper: last_sync might already exist: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE attachments ADD COLUMN mime_type TEXT');
+      } catch (e) {
+        log('DatabaseHelper: mime_type might already exist: $e');
+      }
+      try {
+        await db.execute(
+          'ALTER TABLE attachments ADD COLUMN thumbnail_path TEXT',
+        );
+      } catch (e) {
+        log('DatabaseHelper: thumbnail_path might already exist: $e');
+      }
+      log(
+        'DatabaseHelper: Migration to v3 completed (attachments columns added)',
+      );
     }
   }
 

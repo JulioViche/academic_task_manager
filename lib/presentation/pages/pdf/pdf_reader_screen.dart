@@ -6,9 +6,18 @@ import '../../../domain/entities/reading_entity.dart';
 import '../../providers/reading_notifier.dart';
 
 class PDFReaderScreen extends ConsumerStatefulWidget {
-  final Reading reading;
+  final Reading? reading;
+  final String? filePath;
+  final String? url;
+  final String? title;
 
-  const PDFReaderScreen({super.key, required this.reading});
+  const PDFReaderScreen({
+    super.key,
+    this.reading,
+    this.filePath,
+    this.url,
+    this.title,
+  });
 
   @override
   ConsumerState<PDFReaderScreen> createState() => _PDFReaderScreenState();
@@ -24,13 +33,15 @@ class _PDFReaderScreenState extends ConsumerState<PDFReaderScreen> {
     _pdfViewerController = PdfViewerController();
     // Restore progress
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.reading.currentPage > 0) {
-        _pdfViewerController.jumpToPage(widget.reading.currentPage);
+      if (widget.reading != null && widget.reading!.currentPage > 0) {
+        _pdfViewerController.jumpToPage(widget.reading!.currentPage);
       }
     });
   }
 
   void _saveProgress() {
+    if (widget.reading == null) return;
+
     final currentPage = _pdfViewerController.pageNumber;
     final totalPages = _pdfViewerController.pageCount;
     final progress = totalPages > 0 ? currentPage / totalPages : 0.0;
@@ -39,8 +50,8 @@ class _PDFReaderScreenState extends ConsumerState<PDFReaderScreen> {
     ref
         .read(readingNotifierProvider.notifier)
         .updateReadingProgress(
-          widget.reading.id,
-          widget.reading.subjectId,
+          widget.reading!.id,
+          widget.reading!.subjectId,
           currentPage,
           progress,
           isCompleted,
@@ -49,31 +60,43 @@ class _PDFReaderScreenState extends ConsumerState<PDFReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String displayTitle =
+        widget.title ?? (widget.reading?.title ?? 'Documento PDF');
+    String? path = widget.filePath ?? widget.reading?.filePath;
+    String? netUrl = widget.url ?? widget.reading?.cloudUrl;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.reading.title),
+        title: Text(displayTitle),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.bookmark),
-            onPressed: () {
-              _saveProgress();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Progreso guardado')),
-              );
-            },
-          ),
+          if (widget.reading != null)
+            IconButton(
+              icon: const Icon(Icons.bookmark),
+              onPressed: () {
+                _saveProgress();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Progreso guardado')),
+                );
+              },
+            ),
         ],
       ),
-      body: widget.reading.filePath != null
+      body: path != null
           ? SfPdfViewer.file(
-              File(widget.reading.filePath!),
+              File(path),
               controller: _pdfViewerController,
               key: _pdfViewerKey,
               onPageChanged: (PdfPageChangedDetails details) {
-                // Auto-save progress every 5 pages or so? Maybe just on dispose or manual save is better for perforamnce
+                // Auto-save disabled for non-reading items
               },
             )
-          : const Center(child: Text('Archivo no encontrado')),
+          : (netUrl != null
+                ? SfPdfViewer.network(
+                    netUrl,
+                    controller: _pdfViewerController,
+                    key: _pdfViewerKey,
+                  )
+                : const Center(child: Text('Archivo no encontrado'))),
     );
   }
 

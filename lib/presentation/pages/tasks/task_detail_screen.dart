@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../domain/entities/task_entity.dart';
 import '../../../domain/entities/attachment_entity.dart';
 import '../../providers/auth_notifier.dart';
-// import '../providers/attachment_provider.dart'; // Will be created/fixed
-// For now assuming provider is reachable.
 import '../../providers/attachment_provider.dart';
+import '../../pages/pdf/pdf_reader_screen.dart';
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
   final Task task;
@@ -234,11 +234,15 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         ? '${(attachment.fileSize! / 1024).toStringAsFixed(1)} KB'
                         : 'Unknown size',
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.download),
-                    onPressed: () {
-                      // Handle download/open
-                    },
+                  onTap: () => _openAttachment(attachment),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.download),
+                        onPressed: () => _downloadAttachment(attachment),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -313,31 +317,71 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     ).showSnackBar(const SnackBar(content: Text('Subiendo archivo...')));
 
     // Call provider
-    // Note: AttachmentNotifier doesn't return the attachment, it updates state.
-    // We might want to await the state change or change notifier implementation.
-    // For simplicity, accessing the usecase directly might be easier or listening to state changes.
-    // However, let's use the notifier.
     await ref
         .read(attachmentNotifierProvider.notifier)
-        .uploadFile(file: file, userId: userId, taskId: widget.task.id);
-
-    // Check result
-    final state = ref.read(attachmentNotifierProvider);
-    if (state is AttachmentSuccess) {
-      setState(() {
-        _attachments.add(state.attachment);
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Archivo subido con éxito')),
+        .uploadFile(
+          file: file,
+          userId: userId,
+          taskId: widget.task.id,
+          subjectId: widget.task.subjectId,
         );
+  }
+
+  void _openAttachment(Attachment attachment) {
+    if (attachment.fileType == 'pdf' ||
+        attachment.fileName.toLowerCase().endsWith('.pdf')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PDFReaderScreen(
+            filePath: attachment.filePath,
+            url: attachment.cloudUrl,
+            title: attachment.fileName,
+          ),
+        ),
+      );
+    } else if (['jpg', 'jpeg', 'png'].contains(attachment.fileType) ||
+        attachment.fileName.toLowerCase().endsWith('.jpg') ||
+        attachment.fileName.toLowerCase().endsWith('.png')) {
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          child: attachment.filePath.isNotEmpty
+              ? Image.file(File(attachment.filePath))
+              : (attachment.cloudUrl != null
+                    ? Image.network(attachment.cloudUrl!)
+                    : const Center(child: Text('No image source'))),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Formato no soportado para previsualización'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _downloadAttachment(Attachment attachment) async {
+    if (attachment.cloudUrl != null) {
+      final Uri url = Uri.parse(attachment.cloudUrl!);
+      try {
+        if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+          throw 'Could not launch $url';
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se puede abrir el enlace de descarga'),
+            ),
+          );
+        }
       }
-    } else if (state is AttachmentError) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${state.message}')));
-      }
+    } else if (attachment.filePath.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Archivo local en: ${attachment.filePath}')),
+      );
     }
   }
 }

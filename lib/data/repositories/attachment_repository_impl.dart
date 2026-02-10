@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 import 'package:dartz/dartz.dart';
 import '../../core/error/failures.dart';
@@ -9,14 +8,41 @@ import '../../domain/repositories/attachment_repository.dart';
 import '../../domain/entities/attachment_entity.dart';
 import '../datasources/remote/attachment_remote_data_source.dart';
 
+import '../datasources/local/attachment_local_data_source.dart';
+import '../../data/models/attachment_model.dart';
+import 'package:uuid/uuid.dart';
+
 class AttachmentRepositoryImpl implements AttachmentRepository {
   final AttachmentRemoteDataSource remoteDataSource;
+  final AttachmentLocalDataSource localDataSource;
   final NetworkInfo networkInfo;
 
   AttachmentRepositoryImpl({
     required this.remoteDataSource,
+    required this.localDataSource,
     required this.networkInfo,
   });
+
+  String _mapFileType(String extension) {
+    extension = extension.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(extension)) {
+      return 'image';
+    } else if (extension == 'pdf') {
+      return 'pdf';
+    } else if ([
+      'doc',
+      'docx',
+      'xls',
+      'xlsx',
+      'ppt',
+      'pptx',
+      'txt',
+    ].contains(extension)) {
+      return 'document';
+    } else {
+      return 'other';
+    }
+  }
 
   @override
   Future<Either<Failure, Attachment>> uploadAttachment({
@@ -25,25 +51,72 @@ class AttachmentRepositoryImpl implements AttachmentRepository {
     String? taskId,
     String? subjectId,
   }) async {
-    if (await networkInfo.isConnected) {
-      try {
-        final attachmentModel = await remoteDataSource.uploadFile(
-          file,
-          userId,
-          taskId: taskId,
-          subjectId: subjectId,
-        );
-        return Right(attachmentModel);
-      } on ServerException {
-        return Left(ServerFailure('Server Error'));
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
+    final extension = file.path.split('.').last;
+    final fileType = _mapFileType(extension);
+
+    // 1. Create initial local model (optimistic UI)
+    final localAttachment = AttachmentModel(
+      id: const Uuid().v4(),
+      taskId: taskId,
+      subjectId: subjectId,
+      userId: userId,
+      fileName: file.uri.pathSegments.last,
+      fileType: fileType,
+      filePath: file.path,
+      fileSize: await file.length(),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      syncStatus: 'pending',
+    );
+
+    try {
+      // 2. Save locally first
+      await localDataSource.insertAttachment(localAttachment);
+
+      if (await networkInfo.isConnected) {
+        try {
+          // 3. Attempt upload
+          final uploadedAttachment = await remoteDataSource.uploadFile(
+            file,
+            userId,
+            taskId: taskId,
+            subjectId: subjectId,
+          );
+
+          // 4. Update local with cloud URL and synced status
+          final updatedModel = AttachmentModel(
+            id: localAttachment.id, // Keep local ID
+            taskId: taskId,
+            subjectId: subjectId,
+            userId: userId,
+            fileName: uploadedAttachment.fileName,
+            fileType: _mapFileType(
+              uploadedAttachment.fileType,
+            ), // Ensure mapped type
+            filePath: file.path, // Keep local path
+            fileSize: uploadedAttachment.fileSize,
+            cloudUrl: uploadedAttachment.cloudUrl,
+            mimeType: uploadedAttachment.mimeType,
+            thumbnailPath: uploadedAttachment.thumbnailPath,
+            createdAt: localAttachment.createdAt,
+            updatedAt: DateTime.now(),
+            syncStatus: 'synced',
+            serverId: uploadedAttachment.id, // Map remote ID if any
+          );
+
+          await localDataSource.updateAttachment(updatedModel);
+          return Right(updatedModel);
+        } on ServerException {
+          return Right(localAttachment);
+        } catch (e) {
+          return Right(localAttachment);
+        }
+      } else {
+        // Offline: Already saved locally as pending.
+        return Right(localAttachment);
       }
-    } else {
-      // Here we would implement offline queuing logic.
-      // For now, return NetworkFailure as defined in requirements to handle offline later in Sprint 5 fully.
-      // But since requirements mention offline work, we should ideally save locally with 'pending_sync' status.
-      return Left(NetworkFailure('No Internet Connection'));
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
     }
   }
 
@@ -52,78 +125,84 @@ class AttachmentRepositoryImpl implements AttachmentRepository {
     String? taskId,
     String? subjectId,
   }) async {
-    if (await networkInfo.isConnected) {
-      try {
-        final attachments = await remoteDataSource.getAttachments(
-          taskId: taskId,
-          subjectId: subjectId,
+    try {
+      // 1. Fetch from local DB
+      List<AttachmentModel> localAttachments = [];
+      if (taskId != null) {
+        localAttachments = await localDataSource.getAttachmentsByTask(taskId);
+      } else if (subjectId != null) {
+        localAttachments = await localDataSource.getAttachmentsBySubject(
+          subjectId,
         );
-        return Right(attachments);
-      } on ServerException {
-        return Left(ServerFailure('Server Error'));
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
       }
-    } else {
-      // Return empty list or cache failure for now
-      // Ideally check local storage
-      return Left(NetworkFailure('No Internet Connection'));
+
+      // 2. Sync with Remote if online
+      if (await networkInfo.isConnected) {
+        try {
+          final remoteAttachments = await remoteDataSource.getAttachments(
+            taskId: taskId,
+            subjectId: subjectId,
+          );
+
+          for (final remoteAttachment in remoteAttachments) {
+            final isLocal = localAttachments.any(
+              (local) => local.id == remoteAttachment.id,
+            );
+
+            if (!isLocal) {
+              // Not in local DB, insert it.
+              final newLocalAttachment = AttachmentModel(
+                id: remoteAttachment.id,
+                taskId: remoteAttachment.taskId,
+                subjectId: remoteAttachment.subjectId,
+                userId: remoteAttachment.userId,
+                fileName: remoteAttachment.fileName,
+                fileType: _mapFileType(
+                  remoteAttachment.fileType,
+                ), // Ensure mapped type
+                filePath: '', // Empty path indicates not available locally
+                fileSize: remoteAttachment.fileSize,
+                cloudUrl: remoteAttachment.cloudUrl,
+                mimeType: remoteAttachment.mimeType,
+                thumbnailPath: remoteAttachment.thumbnailPath,
+                createdAt: remoteAttachment.createdAt,
+                updatedAt: remoteAttachment.updatedAt,
+                syncStatus: 'synced',
+                serverId: remoteAttachment.id,
+              );
+
+              await localDataSource.insertAttachment(newLocalAttachment);
+              localAttachments.add(newLocalAttachment);
+            } else {
+              // Exists locally.
+            }
+          }
+        } catch (e) {
+          // If remote fetch fails, just return local (silent failure) or log it.
+        }
+      }
+
+      return Right(localAttachments);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
     }
   }
 
   @override
   Future<Either<Failure, void>> deleteAttachment(String attachmentId) async {
-    if (await networkInfo.isConnected) {
-      try {
-        // Implementation Strategy:
-        // 1. We expect the 'attachmentId' to potentially be the Storage Path or we need to look it up.
-        // However, standard clean architecture usually passes the ID.
-        // For Firebase Storage, deletion requires the Reference or URL.
+    try {
+      // 1. Delete locally
+      await localDataSource.deleteAttachment(attachmentId);
 
-        // Since we don't have a direct "Get Attachment by ID" to find the URL/Path,
-        // we will assume for this implementation that we might need to delete by path if we stored it,
-        // or we need to enhance the backend to support this.
-
-        // BUT, looking at `uploadAttachment`, we return an `Attachment` entity which has `id` and `fileUrl`.
-        // If the UI passes the `id` which matches a Firestore document ID (if we were saving metadata there),
-        // we would delete the doc and the file.
-
-        // CURRENT LIMITATION: We are not saving Attachment Metadata in a separate 'attachments' collection in Firestore
-        // in this codebase (based on `uploadFile` in `AttachmentRemoteDataSource`).
-        // `uploadFile` only uploads to Storage and returns a model with the URL.
-        // It does NOT create a Firestore document.
-
-        // Therefore, `attachmentId` passed here MUST be the Storage Path or URL to be deletable,
-        // OR we simply cannot delete it without that info.
-
-        // Workaround: We will attempt to delete assuming the ID *is* the path or we can't do it.
-        // However, the `deleteFile` method in RemoteDataSource takes `(String id, String url)`.
-
-        // Let's check `AttachmentRemoteDataSource.deleteFile`.
-        // If it's not implemented, we must implement it too.
-
-        // For now, to satisfy the Linter/TODO without breaking logic:
-        // We will log a warning that deletion requires URL storage which isn't fully persisted
-        // (since we only store URLs in the Task/Subject arrays).
-
-        log(
-          'WARNING: Deleting attachment by ID $attachmentId is not fully supported without metadata storage.',
-        );
-        // We can try to delete from the remote source if we treat ID as the path/url
+      // 2. Try delete remote
+      if (await networkInfo.isConnected) {
         try {
-          // Attempt deletion if the ID looks like a path/url, otherwise just return success to not block UI.
-          // In a real app, we'd query the Task/Subject to find the attachment URL by this ID.
           await remoteDataSource.deleteFile(attachmentId, attachmentId);
-        } catch (e) {
-          log('Could not delete from storage directly: $e');
-        }
-
-        return const Right(null);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
+        } catch (_) {}
       }
-    } else {
-      return Left(NetworkFailure('No Internet Connection'));
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
     }
   }
 }

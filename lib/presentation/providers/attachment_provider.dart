@@ -10,6 +10,8 @@ import '../../core/network/network_info.dart';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../data/datasources/local/attachment_local_data_source.dart';
+import 'subject_notifier.dart'; // For databaseHelperProvider
 
 // Dependencies
 final firebaseStorageProvider = Provider<FirebaseStorage>(
@@ -33,9 +35,18 @@ final networkInfoProvider = Provider<NetworkInfo>(
   (ref) => NetworkInfoImpl(Connectivity()),
 );
 
+final attachmentLocalDataSourceProvider = Provider<AttachmentLocalDataSource>((
+  ref,
+) {
+  return AttachmentLocalDataSourceImpl(
+    databaseHelper: ref.watch(databaseHelperProvider),
+  );
+});
+
 final attachmentRepositoryProvider = Provider<AttachmentRepositoryImpl>((ref) {
   return AttachmentRepositoryImpl(
     remoteDataSource: ref.read(attachmentRemoteDataSourceProvider),
+    localDataSource: ref.read(attachmentLocalDataSourceProvider),
     networkInfo: ref.read(networkInfoProvider),
   );
 });
