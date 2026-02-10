@@ -11,6 +11,7 @@ import 'data/datasources/local/database_helper.dart';
 import 'presentation/providers/auth_notifier.dart';
 import 'presentation/providers/sync_provider.dart';
 import 'core/theme/theme_notifier.dart';
+import 'core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,9 @@ void main() async {
 
   // Initialize Database (triggers migration if needed)
   await DatabaseHelper().database;
+
+  // Initialize local notifications
+  await NotificationService().initialize();
 
   // Initialize SharedPreferences
   final sharedPreferences = await SharedPreferences.getInstance();
