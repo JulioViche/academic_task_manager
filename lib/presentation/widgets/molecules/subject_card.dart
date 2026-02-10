@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../domain/entities/subject_entity.dart';
+import '../atoms/sync_status_badge.dart';
 
 class SubjectCard extends StatelessWidget {
   final Subject subject;
@@ -33,11 +34,19 @@ class SubjectCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                subject.name,
-                style: Theme.of(context).textTheme.titleLarge,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      subject.name,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (subject.syncStatus != 'synced')
+                    SyncStatusBadge(syncStatus: subject.syncStatus),
+                ],
               ),
               const SizedBox(height: 4),
               if (subject.code?.isNotEmpty ?? false)

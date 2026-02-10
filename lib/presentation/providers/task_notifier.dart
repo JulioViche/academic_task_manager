@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/network/network_info.dart';
 import '../../data/datasources/remote/task_remote_data_source.dart';
 import 'subject_notifier.dart';
+import 'sync_provider.dart';
 
 /// State for tasks
 class TaskState {
@@ -173,6 +174,7 @@ final taskRepositoryProvider = Provider<TaskRepositoryImpl>((ref) {
     localDataSource: ref.watch(taskLocalDataSourceProvider),
     remoteDataSource: ref.watch(taskRemoteDataSourceProvider),
     networkInfo: ref.watch(networkInfoProvider),
+    syncQueue: ref.watch(syncQueueDataSourceProvider),
   );
 });
 

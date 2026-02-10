@@ -245,6 +245,22 @@ class AppDatabaseSchema {
     );
   ''';
 
+  static const String createSyncQueueTable = '''
+    CREATE TABLE sync_queue (
+        id TEXT PRIMARY KEY,
+        table_name TEXT NOT NULL,
+        record_id TEXT NOT NULL,
+        operation_type TEXT NOT NULL CHECK(operation_type IN ('create', 'update', 'delete')),
+        json_data TEXT,
+        created_at INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed', 'failed')),
+        retry_count INTEGER DEFAULT 0,
+        max_retries INTEGER DEFAULT 3,
+        error_message TEXT,
+        last_attempted_at INTEGER
+    );
+  ''';
+
   static const String createImageCacheTable = '''
     CREATE TABLE image_cache (
         cache_id TEXT PRIMARY KEY,
@@ -273,6 +289,8 @@ class AppDatabaseSchema {
     'CREATE INDEX idx_attachments_subject ON attachments(subject_id)',
     'CREATE INDEX idx_grades_subject ON grades(subject_id)',
     'CREATE INDEX idx_events_start_date ON calendar_events(start_date)',
+    'CREATE INDEX idx_sync_queue_status ON sync_queue(status)',
+    'CREATE INDEX idx_sync_queue_table ON sync_queue(table_name)',
   ];
 
   // Triggers

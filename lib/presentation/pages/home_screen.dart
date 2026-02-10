@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/utils/date_utils.dart' as date_utils;
 import '../widgets/molecules/empty_state.dart';
+import '../widgets/molecules/offline_banner.dart';
 // Import entities/providers when available
 
 class HomeScreen extends ConsumerWidget {
@@ -27,6 +28,11 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: 'Sincronización',
+            onPressed: () => context.push('/sync-history'),
+          ),
           IconButton(icon: const Icon(Icons.notifications), onPressed: () {}),
           IconButton(
             icon: const Icon(Icons.person),
@@ -34,42 +40,49 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionHeader(context, 'Today\'s Overview'),
-            const SizedBox(height: 12),
-            _buildOverviewCards(context),
-            const SizedBox(height: 24),
-            _buildSectionHeader(
-              context,
-              'Upcoming Tasks',
-              action: 'See All',
-              onAction: () => context.go('/tasks'),
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(context, 'Today\'s Overview'),
+                  const SizedBox(height: 12),
+                  _buildOverviewCards(context),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(
+                    context,
+                    'Upcoming Tasks',
+                    action: 'See All',
+                    onAction: () => context.go('/tasks'),
+                  ),
+                  const SizedBox(height: 12),
+                  // Placeholder for tasks list
+                  const EmptyState(
+                    message: 'No tasks for today!',
+                    icon: Icons.check_circle_outline,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(
+                    context,
+                    'Active Subjects',
+                    action: 'Manage',
+                    onAction: () => context.go('/subjects'),
+                  ),
+                  const SizedBox(height: 12),
+                  // Placeholder for subjects list
+                  const SizedBox(
+                    height: 120,
+                    child: Center(child: Text('No subjects added yet')),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            // Placeholder for tasks list
-            const EmptyState(
-              message: 'No tasks for today!',
-              icon: Icons.check_circle_outline,
-            ),
-            const SizedBox(height: 24),
-            _buildSectionHeader(
-              context,
-              'Active Subjects',
-              action: 'Manage',
-              onAction: () => context.go('/subjects'),
-            ),
-            const SizedBox(height: 12),
-            // Placeholder for subjects list
-            const SizedBox(
-              height: 120,
-              child: Center(child: Text('No subjects added yet')),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {

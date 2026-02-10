@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/network/network_info.dart';
 import '../../data/datasources/remote/subject_remote_data_source.dart';
 import '../../data/datasources/local/database_helper.dart';
+import 'sync_provider.dart';
 
 /// State for subjects
 class SubjectState {
@@ -150,6 +151,7 @@ final subjectRepositoryProvider = Provider<SubjectRepositoryImpl>((ref) {
     localDataSource: ref.watch(subjectLocalDataSourceProvider),
     remoteDataSource: ref.watch(subjectRemoteDataSourceProvider),
     networkInfo: ref.watch(networkInfoProvider),
+    syncQueue: ref.watch(syncQueueDataSourceProvider),
   );
 });
 

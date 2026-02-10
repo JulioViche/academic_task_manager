@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -7,6 +8,9 @@ import 'schema.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
+
+  // Increment this when schema changes
+  static const int _dbVersion = 2;
 
   factory DatabaseHelper() => _instance;
 
@@ -24,8 +28,9 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: _dbVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
       onConfigure: _onConfigure,
     );
   }
@@ -50,6 +55,7 @@ class DatabaseHelper {
     await db.execute(AppDatabaseSchema.createSubjectStatisticsTable);
     await db.execute(AppDatabaseSchema.createSyncHistoryTable);
     await db.execute(AppDatabaseSchema.createAppSettingsTable);
+    await db.execute(AppDatabaseSchema.createSyncQueueTable);
     await db.execute(AppDatabaseSchema.createImageCacheTable);
 
     // Create Indices
@@ -60,6 +66,23 @@ class DatabaseHelper {
     // Create Triggers
     for (String triggerSql in AppDatabaseSchema.createTriggers) {
       await db.execute(triggerSql);
+    }
+  }
+
+  /// Handle database migrations
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    log('DatabaseHelper: Upgrading from v$oldVersion to v$newVersion');
+
+    if (oldVersion < 2) {
+      // v2: Add sync_queue table
+      await db.execute(AppDatabaseSchema.createSyncQueueTable);
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(status)',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_sync_queue_table ON sync_queue(table_name)',
+      );
+      log('DatabaseHelper: Migration to v2 completed (sync_queue table added)');
     }
   }
 

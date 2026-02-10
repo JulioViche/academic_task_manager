@@ -99,7 +99,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen>
       );
     }
 
-    return ListView.builder(
+    return RefreshIndicator(
+    onRefresh: () async => _loadData(),
+    child: ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: tasks.length,
       itemBuilder: (context, index) {
@@ -111,7 +113,8 @@ class _TasksScreenState extends ConsumerState<TasksScreen>
           onDelete: () => _confirmDeleteTask(task),
         );
       },
-    );
+    ),
+  );
   }
 
   void _completeTask(Task task) async {

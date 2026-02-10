@@ -89,7 +89,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
       );
     }
 
-    return ListView.builder(
+    return RefreshIndicator(
+    onRefresh: () async => _loadSubjects(),
+    child: ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: state.subjects.length,
       itemBuilder: (context, index) {
@@ -101,7 +103,8 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
           onDelete: () => _confirmDeleteSubject(context, subject),
         );
       },
-    );
+    ),
+  );
   }
 
   void _showAddSubjectDialog(BuildContext context) {

@@ -15,6 +15,7 @@ import '../../presentation/pages/profile/edit_profile_screen.dart';
 import '../../presentation/pages/profile/notifications_screen.dart';
 import '../../presentation/pages/profile/help_screen.dart';
 import '../../presentation/widgets/organisms/navigation_shell.dart';
+import '../../presentation/pages/sync/sync_history_screen.dart';
 
 // Private navigators
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -94,6 +95,11 @@ class AppRouter {
         path: '/help',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const HelpScreen(),
+      ),
+      GoRoute(
+        path: '/sync-history',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const SyncHistoryScreen(),
       ),
     ],
   );

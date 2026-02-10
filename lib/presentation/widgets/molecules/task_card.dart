@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../domain/entities/task_entity.dart';
 import '../atoms/priority_badge.dart';
+import '../atoms/sync_status_badge.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -81,6 +82,10 @@ class TaskCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (task.syncStatus != 'synced') ...[
+                SyncStatusBadge(syncStatus: task.syncStatus),
+                const SizedBox(width: 4),
+              ],
               // Map string priority to enum
               if (!isCompleted)
                 PriorityBadge(priority: _getPriorityFromString(task.priority)),

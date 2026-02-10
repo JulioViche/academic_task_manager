@@ -9,6 +9,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/datasources/local/database_helper.dart';
 import 'presentation/providers/auth_notifier.dart';
+import 'presentation/providers/sync_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +18,7 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Initialize Database
+  // Initialize Database (triggers migration if needed)
   await DatabaseHelper().database;
 
   // Initialize SharedPreferences
@@ -34,8 +35,27 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
+
+  @override
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> {
+  bool _listenerStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start connectivity listener after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_listenerStarted) {
+        ref.read(connectivityListenerProvider).startListening();
+        _listenerStarted = true;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,3 +76,4 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
