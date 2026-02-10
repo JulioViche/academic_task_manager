@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/task_entity.dart';
 import '../../data/repositories/task_repository_impl.dart';
@@ -52,14 +53,14 @@ class TaskNotifier extends StateNotifier<TaskState> {
   Future<void> loadTasks(String userId) async {
     _currentUserId = userId;
     state = state.copyWith(isLoading: true, errorMessage: null);
-    print('TaskNotifier: Loading tasks for user $userId');
+    log('TaskNotifier: Loading tasks for user $userId');
 
     try {
       final tasks = await repository.getTasks(userId);
       final pendingTasks = await repository.getPendingTasks(userId);
       final overdueTasks = await repository.getOverdueTasks(userId);
 
-      print('TaskNotifier: Loaded ${tasks.length} tasks');
+      log('TaskNotifier: Loaded ${tasks.length} tasks');
 
       state = state.copyWith(
         tasks: tasks,
@@ -68,7 +69,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
         isLoading: false,
       );
     } catch (e) {
-      print('TaskNotifier: Error loading tasks: $e');
+      log('TaskNotifier: Error loading tasks: $e');
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to load tasks: ${e.toString()}',

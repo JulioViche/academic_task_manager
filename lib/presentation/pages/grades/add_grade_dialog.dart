@@ -68,7 +68,9 @@ class _AddGradeDialogState extends ConsumerState<AddGradeDialog> {
     setState(() => _isSubmitting = true);
 
     try {
-      await ref.read(gradeNotifierProvider.notifier).addGrade(
+      await ref
+          .read(gradeNotifierProvider.notifier)
+          .addGrade(
             subjectId: widget.subjectId,
             userId: widget.userId,
             gradeType: _gradeType,
@@ -86,9 +88,9 @@ class _AddGradeDialogState extends ConsumerState<AddGradeDialog> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -97,8 +99,6 @@ class _AddGradeDialogState extends ConsumerState<AddGradeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return AlertDialog(
       title: const Text('Nueva Calificación'),
       content: SingleChildScrollView(
@@ -122,16 +122,17 @@ class _AddGradeDialogState extends ConsumerState<AddGradeDialog> {
 
               // Grade type dropdown
               DropdownButtonFormField<String>(
-                value: _gradeType,
+                key: ValueKey(_gradeType),
+                initialValue: _gradeType,
                 decoration: const InputDecoration(
                   labelText: 'Tipo',
                   prefixIcon: Icon(Icons.category),
                 ),
                 items: _gradeTypes.entries
-                    .map((e) => DropdownMenuItem(
-                          value: e.key,
-                          child: Text(e.value),
-                        ))
+                    .map(
+                      (e) =>
+                          DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _gradeType = v ?? 'exam'),
               ),
@@ -148,8 +149,9 @@ class _AddGradeDialogState extends ConsumerState<AddGradeDialog> {
                         hintText: '8.5',
                         prefixIcon: Icon(Icons.star),
                       ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       validator: (v) {
                         if (v == null || v.isEmpty) return 'Requerido';
                         final score = double.tryParse(v);
@@ -167,8 +169,9 @@ class _AddGradeDialogState extends ConsumerState<AddGradeDialog> {
                         hintText: '10',
                         prefixIcon: Icon(Icons.star_border),
                       ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       validator: (v) {
                         if (v == null || v.isEmpty) return 'Requerido';
                         final max = double.tryParse(v);
@@ -189,8 +192,9 @@ class _AddGradeDialogState extends ConsumerState<AddGradeDialog> {
                   hintText: '1.0',
                   prefixIcon: Icon(Icons.balance),
                 ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
               ),
               const SizedBox(height: 12),
 
@@ -202,9 +206,7 @@ class _AddGradeDialogState extends ConsumerState<AddGradeDialog> {
                     labelText: 'Fecha',
                     prefixIcon: Icon(Icons.calendar_today),
                   ),
-                  child: Text(
-                    DateFormat('dd/MM/yyyy').format(_selectedDate),
-                  ),
+                  child: Text(DateFormat('dd/MM/yyyy').format(_selectedDate)),
                 ),
               ),
               const SizedBox(height: 12),

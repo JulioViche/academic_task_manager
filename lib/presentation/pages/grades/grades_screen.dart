@@ -49,183 +49,194 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Calificaciones'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Calificaciones'), elevation: 0),
       body: subjectState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : subjectState.subjects.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.school_outlined,
-                          size: 64, color: theme.disabledColor),
-                      const SizedBox(height: 16),
-                      Text('No hay materias registradas',
-                          style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 8),
-                      Text('Crea una materia para agregar calificaciones',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.disabledColor,
-                          )),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.school_outlined,
+                    size: 64,
+                    color: theme.disabledColor,
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: subjectState.subjects.length,
-                  itemBuilder: (context, index) {
-                    final subject = subjectState.subjects[index];
-                    final isSelected = _selectedSubjectId == subject.id;
-                    final average =
-                        gradeState.averages[subject.id] ?? 0.0;
+                  const SizedBox(height: 16),
+                  Text(
+                    'No hay materias registradas',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Crea una materia para agregar calificaciones',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.disabledColor,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: subjectState.subjects.length,
+              itemBuilder: (context, index) {
+                final subject = subjectState.subjects[index];
+                final isSelected = _selectedSubjectId == subject.id;
+                final average = gradeState.averages[subject.id] ?? 0.0;
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        children: [
-                          // Subject header
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                if (isSelected) {
-                                  _selectedSubjectId = null;
-                                } else {
-                                  _selectedSubjectId = subject.id;
-                                  _loadGrades(subject.id);
-                                }
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHighest
-                                    .withValues(alpha: 0.3),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: Color(int.parse(
-                                              '0xFF${subject.colorHex.replaceAll('#', '')}'))
-                                          .withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(8),
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      // Subject header
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            if (isSelected) {
+                              _selectedSubjectId = null;
+                            } else {
+                              _selectedSubjectId = subject.id;
+                              _loadGrades(subject.id);
+                            }
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.3),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Color(
+                                    int.parse(
+                                      '0xFF${subject.colorHex.replaceAll('#', '')}',
                                     ),
-                                    child: Icon(
-                                      Icons.book,
-                                      color: Color(int.parse(
-                                          '0xFF${subject.colorHex.replaceAll('#', '')}')),
+                                  ).withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.book,
+                                  color: Color(
+                                    int.parse(
+                                      '0xFF${subject.colorHex.replaceAll('#', '')}',
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          subject.name,
-                                          style:
-                                              theme.textTheme.titleMedium
-                                                  ?.copyWith(
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      subject.name,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
                                             fontWeight: FontWeight.w600,
                                           ),
-                                        ),
-                                        if (subject.teacherName != null)
-                                          Text(
-                                            subject.teacherName!,
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                              color: theme.disabledColor,
-                                            ),
+                                    ),
+                                    Text(
+                                      subject.teacherName,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme.disabledColor,
                                           ),
-                                      ],
                                     ),
-                                  ),
-                                  // Average badge
-                                  if (average > 0)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            _gradeColor(average).withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        average.toStringAsFixed(1),
-                                        style: TextStyle(
-                                          color: _gradeColor(average),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ),
-                                  const SizedBox(width: 8),
-                                  Icon(
-                                    isSelected
-                                        ? Icons.expand_less
-                                        : Icons.expand_more,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          // Expandable grades list
-                          if (isSelected) ...[
-                            if (gradeState.isLoading)
-                              const Padding(
-                                padding: EdgeInsets.all(16),
-                                child:
-                                    Center(child: CircularProgressIndicator()),
-                              )
-                            else if (gradeState.grades.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  children: [
-                                    Icon(Icons.grade_outlined,
-                                        size: 40, color: theme.disabledColor),
-                                    const SizedBox(height: 8),
-                                    Text('Sin calificaciones',
-                                        style: theme.textTheme.bodyMedium
-                                            ?.copyWith(
-                                          color: theme.disabledColor,
-                                        )),
                                   ],
                                 ),
-                              )
-                            else
-                              ...gradeState.grades.map(
-                                (grade) => _GradeTile(
-                                  grade: grade,
-                                  onDelete: () {
-                                    ref
-                                        .read(gradeNotifierProvider.notifier)
-                                        .deleteGrade(grade.id, subject.id);
-                                  },
+                              ),
+                              // Average badge
+                              if (average > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _gradeColor(
+                                      average,
+                                    ).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    average.toStringAsFixed(1),
+                                    style: TextStyle(
+                                      color: _gradeColor(average),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
                                 ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                isSelected
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
                               ),
-                            // Add grade button
-                            Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: TextButton.icon(
-                                onPressed: () => _showAddGradeDialog(subject.id),
-                                icon: const Icon(Icons.add),
-                                label: const Text('Agregar calificación'),
-                              ),
-                            ),
-                          ],
-                        ],
+                            ],
+                          ),
+                        ),
                       ),
-                    );
-                  },
-                ),
+                      // Expandable grades list
+                      if (isSelected) ...[
+                        if (gradeState.isLoading)
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else if (gradeState.grades.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.grade_outlined,
+                                  size: 40,
+                                  color: theme.disabledColor,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Sin calificaciones',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.disabledColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          ...gradeState.grades.map(
+                            (grade) => _GradeTile(
+                              grade: grade,
+                              onDelete: () {
+                                ref
+                                    .read(gradeNotifierProvider.notifier)
+                                    .deleteGrade(grade.id, subject.id);
+                              },
+                            ),
+                          ),
+                        // Add grade button
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: TextButton.icon(
+                            onPressed: () => _showAddGradeDialog(subject.id),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Agregar calificación'),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
       floatingActionButton: _selectedSubjectId != null
           ? FloatingActionButton(
               onPressed: () => _showAddGradeDialog(_selectedSubjectId!),
@@ -310,8 +321,10 @@ class _GradeTile extends StatelessWidget {
                     Navigator.pop(ctx);
                     onDelete();
                   },
-                  child: const Text('Eliminar',
-                      style: TextStyle(color: Colors.red)),
+                  child: const Text(
+                    'Eliminar',
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
               ],
             ),

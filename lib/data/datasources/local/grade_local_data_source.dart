@@ -1,4 +1,3 @@
-import '../../../domain/entities/grade_entity.dart';
 import '../../models/grade_model.dart';
 import 'database_helper.dart';
 import '../../../core/error/exceptions.dart';
@@ -104,11 +103,7 @@ class GradeLocalDataSourceImpl implements GradeLocalDataSource {
   Future<void> deleteGrade(String gradeId) async {
     try {
       final db = await databaseHelper.database;
-      await db.delete(
-        'grades',
-        where: 'grade_id = ?',
-        whereArgs: [gradeId],
-      );
+      await db.delete('grades', where: 'grade_id = ?', whereArgs: [gradeId]);
     } catch (e) {
       throw CacheException('Failed to delete grade: ${e.toString()}');
     }

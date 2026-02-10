@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/theme_notifier.dart';
 import '../providers/auth_notifier.dart';
 import '../providers/auth_state.dart';
+import '../providers/app_info_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -11,6 +13,8 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
+    final packageInfoAsync = ref.watch(packageInfoProvider);
+    final storageAsync = ref.watch(storageUsageProvider);
 
     // Listen for logout state changes to redirect
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
@@ -38,10 +42,54 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Idioma'),
             subtitle: const Text('Español'),
             trailing: const Icon(Icons.chevron_right),
+            onTap: () {},
+          ),
+          ListTile(
+            leading: const Icon(Icons.notifications_outlined),
+            title: const Text('Notificaciones'),
+            subtitle: const Text('Activado'), // TODO: Implement Toggle
+            trailing: Switch(value: true, onChanged: (val) {}),
+          ),
+
+          const Divider(),
+          const _SectionHeader(title: 'Datos y Almacenamiento'),
+          ListTile(
+            leading: const Icon(Icons.storage_outlined),
+            title: const Text('Almacenamiento Local'),
+            subtitle: storageAsync.when(
+              data: (size) => Text(size),
+              loading: () => const Text('Calculando...'),
+              error: (_, s) => const Text('Desconocido'),
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () {
+                // TODO: Clear cache
+              },
+            ),
+          ),
+
+          const Divider(),
+          const _SectionHeader(title: 'Acerca de'),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('Versión'),
+            subtitle: packageInfoAsync.when(
+              data: (info) =>
+                  Text('${info.version} (Build ${info.buildNumber})'),
+              loading: () => const Text('Cargando...'),
+              error: (_, s) => const Text('Desconocido'),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text('Política de Privacidad'),
+            trailing: const Icon(Icons.open_in_new, size: 16),
             onTap: () {
-              // TODO: Implement language selection
+              launchUrl(Uri.parse('https://example.com/privacy'));
             },
           ),
+
           const Divider(),
           const _SectionHeader(title: 'Cuenta'),
           ListTile(
@@ -96,7 +144,9 @@ class SettingsScreen extends ConsumerWidget {
             RadioListTile<ThemeMode>(
               title: const Text('Sistema'),
               value: ThemeMode.system,
+              // ignore: deprecated_member_use
               groupValue: currentTheme,
+              // ignore: deprecated_member_use
               onChanged: (value) {
                 if (value != null) {
                   ref.read(themeProvider.notifier).setTheme(value);
@@ -107,7 +157,9 @@ class SettingsScreen extends ConsumerWidget {
             RadioListTile<ThemeMode>(
               title: const Text('Claro'),
               value: ThemeMode.light,
+              // ignore: deprecated_member_use
               groupValue: currentTheme,
+              // ignore: deprecated_member_use
               onChanged: (value) {
                 if (value != null) {
                   ref.read(themeProvider.notifier).setTheme(value);
@@ -118,7 +170,9 @@ class SettingsScreen extends ConsumerWidget {
             RadioListTile<ThemeMode>(
               title: const Text('Oscuro'),
               value: ThemeMode.dark,
+              // ignore: deprecated_member_use
               groupValue: currentTheme,
+              // ignore: deprecated_member_use
               onChanged: (value) {
                 if (value != null) {
                   ref.read(themeProvider.notifier).setTheme(value);

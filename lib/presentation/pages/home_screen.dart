@@ -9,6 +9,7 @@ import '../providers/subject_notifier.dart';
 import '../providers/task_notifier.dart';
 import '../providers/sprint6_providers.dart';
 import '../../domain/entities/task_entity.dart';
+import '../widgets/search_delegate.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -68,17 +69,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final notifState = ref.watch(notificationNotifierProvider);
 
     // Get upcoming tasks (next 7 days, not completed)
-    final upcomingTasks = taskState.tasks.where((t) {
-      if (t.status == 'completed') return false;
-      if (t.dueDate == null) return false;
-      final diff = t.dueDate!.difference(DateTime.now()).inDays;
-      return diff >= 0 && diff <= 7;
-    }).toList()
-      ..sort((a, b) {
-        final aDate = a.dueDate ?? DateTime(9999);
-        final bDate = b.dueDate ?? DateTime(9999);
-        return aDate.compareTo(bDate);
-      });
+    final upcomingTasks =
+        taskState.tasks.where((t) {
+          if (t.status == 'completed') return false;
+          if (t.dueDate == null) return false;
+          final diff = t.dueDate!.difference(DateTime.now()).inDays;
+          return diff >= 0 && diff <= 7;
+        }).toList()..sort((a, b) {
+          final aDate = a.dueDate ?? DateTime(9999);
+          final bDate = b.dueDate ?? DateTime(9999);
+          return aDate.compareTo(bDate);
+        });
 
     return Scaffold(
       appBar: AppBar(
@@ -87,13 +88,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const Text('Academic Task Manager'),
             Text(
               date_utils.DateUtilsHelper.formatDate(today),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.white70,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
             ),
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Buscar',
+            onPressed: () {
+              showSearch(context: context, delegate: CustomSearchDelegate(ref));
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.sync),
             tooltip: 'Sincronización',
@@ -166,9 +172,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         icon: Icons.check_circle_outline,
                       )
                     else
-                      ...upcomingTasks.take(5).map(
-                            (task) => _UpcomingTaskCard(task: task),
-                          ),
+                      ...upcomingTasks
+                          .take(5)
+                          .map((task) => _UpcomingTaskCard(task: task)),
                     const SizedBox(height: 24),
 
                     // ── Active Subjects ──
@@ -192,12 +198,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: subjectState.subjects.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 12),
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
                           itemBuilder: (context, index) {
                             final subject = subjectState.subjects[index];
-                            final color = Color(int.parse(
-                                '0xFF${subject.colorHex.replaceAll('#', '')}'));
+                            final color = Color(
+                              int.parse(
+                                '0xFF${subject.colorHex.replaceAll('#', '')}',
+                              ),
+                            );
                             return Container(
                               width: 140,
                               padding: const EdgeInsets.all(12),
@@ -209,17 +217,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ),
                               ),
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.book, color: color, size: 24),
                                   const SizedBox(height: 8),
                                   Text(
                                     subject.name,
-                                    style: theme.textTheme.bodyMedium
-                                        ?.copyWith(
+                                    style: theme.textTheme.bodyMedium?.copyWith(
                                       fontWeight: FontWeight.w600,
                                     ),
                                     maxLines: 2,
@@ -259,6 +264,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _QuickAction(
+                            icon: Icons.book_online,
+                            label: 'Lecturas',
+                            color: Colors.orange,
+                            onTap: () => context.push('/readings'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _QuickAction(
+                            icon: Icons.calendar_month,
+                            label: 'Calendario',
+                            color: Colors.blue,
+                            onTap: () => context.push('/calendar'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -266,6 +293,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
+
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/tasks'),
         label: const Text('Nueva Tarea'),
@@ -295,17 +323,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       children: [
         Expanded(
           child: _buildSummaryCard(
-              context, 'Pendientes', '$_pendingCount', Colors.orange),
+            context,
+            'Pendientes',
+            '$_pendingCount',
+            Colors.orange,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _buildSummaryCard(
-              context, 'Completadas', '$_completedCount', Colors.green),
+            context,
+            'Completadas',
+            '$_completedCount',
+            Colors.green,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _buildSummaryCard(
-              context, 'Vencidas', '$_overdueCount', Colors.red),
+            context,
+            'Vencidas',
+            '$_overdueCount',
+            Colors.red,
+          ),
         ),
       ],
     );
@@ -329,17 +369,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Text(
             value,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: color),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: color),
             textAlign: TextAlign.center,
           ),
         ],
@@ -426,11 +465,7 @@ class _UpcomingTaskCard extends StatelessWidget {
           backgroundColor: urgencyColor.withValues(alpha: 0.15),
           child: Icon(Icons.assignment, color: urgencyColor, size: 20),
         ),
-        title: Text(
-          task.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: Text(task.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
@@ -478,10 +513,7 @@ class _StatRow extends StatelessWidget {
           Expanded(child: Text(label)),
           Text(
             value,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, color: color),
           ),
         ],
       ),
@@ -523,10 +555,7 @@ class _QuickAction extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: color, fontWeight: FontWeight.w600),
             ),
           ],
         ),

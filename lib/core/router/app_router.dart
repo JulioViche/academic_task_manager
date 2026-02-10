@@ -4,7 +4,7 @@ import '../../presentation/pages/splash_screen.dart';
 import '../../presentation/pages/home_screen.dart';
 import '../../presentation/pages/login_screen.dart';
 import '../../presentation/pages/onboarding_screen.dart';
-import '../../presentation/pages/placeholder_screens.dart' hide CalendarScreen, GradesScreen;
+
 import '../../presentation/pages/grades/grades_screen.dart';
 import '../../presentation/pages/subjects_screen.dart';
 import '../../presentation/pages/tasks_screen.dart';
@@ -18,6 +18,9 @@ import '../../presentation/pages/profile/help_screen.dart';
 import '../../presentation/pages/settings_screen.dart';
 import '../../presentation/widgets/organisms/navigation_shell.dart';
 import '../../presentation/pages/sync/sync_history_screen.dart';
+import '../../presentation/pages/pdf/readings_screen.dart';
+import '../../presentation/pages/pdf/pdf_reader_screen.dart';
+import '../../domain/entities/reading_entity.dart';
 
 // Private navigators
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -102,6 +105,19 @@ class AppRouter {
         path: '/sync-history',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SyncHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/readings',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ReadingsScreen(),
+      ),
+      GoRoute(
+        path: '/pdf-reader',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final reading = state.extra as Reading;
+          return PDFReaderScreen(reading: reading);
+        },
       ),
     ],
   );
