@@ -9,11 +9,14 @@ class StatisticsService {
   /// Get average grade per subject → { subjectId: average }
   Future<Map<String, double>> getAveragesBySubject(String userId) async {
     final db = await databaseHelper.database;
-    final result = await db.rawQuery('''
+    final result = await db.rawQuery(
+      '''
       SELECT subject_id, AVG(score * 1.0 / max_score * 10) as average
       FROM grades WHERE user_id = ?
       GROUP BY subject_id
-    ''', [userId]);
+    ''',
+      [userId],
+    );
 
     final map = <String, double>{};
     for (final row in result) {
@@ -28,18 +31,20 @@ class StatisticsService {
   Future<int> getCompletedTasksCount(String userId) async {
     final db = await databaseHelper.database;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_completed = 1',
+      "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status = 'completed'",
       [userId],
     );
     return (result.first['count'] as int?) ?? 0;
   }
 
-  /// Count of pending (not completed) tasks
+  /// Count of pending tasks (not completed and not yet overdue)
   Future<int> getPendingTasksCount(String userId) async {
     final db = await databaseHelper.database;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    // Count tasks that are not completed and (have no due date OR are due in the future)
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_completed = 0',
-      [userId],
+      "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status != 'completed' AND (due_date IS NULL OR due_date >= ?)",
+      [userId, now],
     );
     return (result.first['count'] as int?) ?? 0;
   }
@@ -49,7 +54,7 @@ class StatisticsService {
     final db = await databaseHelper.database;
     final now = DateTime.now().millisecondsSinceEpoch;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_completed = 0 AND due_date < ?',
+      "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status != 'completed' AND due_date < ?",
       [userId, now],
     );
     return (result.first['count'] as int?) ?? 0;
@@ -63,7 +68,7 @@ class StatisticsService {
       [userId],
     );
     final completed = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_completed = 1',
+      "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status = 'completed'",
       [userId],
     );
     final t = (total.first['count'] as int?) ?? 0;
@@ -75,11 +80,14 @@ class StatisticsService {
   /// Tasks count per subject → { subjectId: count }
   Future<Map<String, int>> getTasksPerSubject(String userId) async {
     final db = await databaseHelper.database;
-    final result = await db.rawQuery('''
+    final result = await db.rawQuery(
+      '''
       SELECT subject_id, COUNT(*) as count
       FROM tasks WHERE user_id = ?
       GROUP BY subject_id
-    ''', [userId]);
+    ''',
+      [userId],
+    );
 
     final map = <String, int>{};
     for (final row in result) {
@@ -94,9 +102,11 @@ class StatisticsService {
   Future<int> getUpcomingTasksCount(String userId) async {
     final db = await databaseHelper.database;
     final now = DateTime.now().millisecondsSinceEpoch;
-    final weekLater = DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch;
+    final weekLater = DateTime.now()
+        .add(const Duration(days: 7))
+        .millisecondsSinceEpoch;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_completed = 0 AND due_date >= ? AND due_date <= ?',
+      "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status != 'completed' AND due_date >= ? AND due_date <= ?",
       [userId, now, weekLater],
     );
     return (result.first['count'] as int?) ?? 0;
